@@ -197,8 +197,8 @@
                     setTimeout(() => { card.style.borderColor = '#00ffcc'; }, 600);
                 } else {
                     nameEl.innerText = "Unbekannte SSD";
-                    speicherEl.innerText = "UUID nicht registriert.";
-                    ordnerEl.innerText = "Stecke die SSD zuerst am Mac an.";
+                    speicherEl.innerText = "Gescannte ID: " + uuid;
+                    ordnerEl.innerText = "Prüfe, ob diese ID exakt so in der Airtable-Spalte 'UUID' steht.";
                     card.style.borderColor = '#ff3333';
                 }
             } catch (error) {
