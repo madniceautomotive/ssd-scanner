@@ -1,14 +1,15 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
+<!DOCTYPE html><html lang="de"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>MNAU SSD AR-Scanner</title>
-    <link rel="icon" type="image/png" href="logo.png">
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.4.4/build/qrcode.min.js"></script>
     
+    <link rel="icon" type="image/png" href="logo.png">
     <link rel="apple-touch-icon" href="logo.png">
     <link rel="apple-touch-icon" sizes="152x152" href="logo.png">
-    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    
     <style>
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
@@ -23,7 +24,6 @@
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             z-index: 2; pointer-events: none;
         }
-        /* Das Visier in der Mitte des Bildschirms */
         .scan-region {
             position: absolute; top: 40%; left: 50%;
             transform: translate(-50%, -50%);
@@ -42,7 +42,6 @@
             50% { top: 100%; }
             100% { top: 0; }
         }
-        /* Das stylische, schwebende AR-Schild (Cyber-HUD Look) */
         .ar-card {
             position: absolute; bottom: 40px; left: 50%;
             transform: translateX(-50%); width: 92%; max-width: 420px;
@@ -86,12 +85,58 @@
             animation: spin 1s linear infinite; margin-bottom: 20px;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
-    </style>
-</head>
-<body>
+
+        /* NEU: Floating Action Button (FAB) */
+        .fab {
+            position: absolute; bottom: 30px; right: 30px; z-index: 5;
+            width: 60px; height: 60px; background: #0a111c;
+            border: 2px solid #00ffcc; border-radius: 50%;
+            box-shadow: 0 0 15px rgba(0, 255, 204, 0.4);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; pointer-events: auto; transition: all 0.2s ease;
+        }
+        .fab:active { transform: scale(0.9); }
+        .fab svg { width: 26px; height: 26px; fill: #00ffcc; }
+
+        /* NEU: Fullscreen Manager Overlay */
+        .manager-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(10, 17, 28, 0.98); z-index: 6;
+            display: none; flex-direction: column; color: white;
+            box-sizing: border-box; pointer-events: auto;
+        }
+        .manager-header {
+            padding: 24px 20px; border-bottom: 1px solid rgba(0, 255, 204, 0.2);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .manager-header h1 { margin: 0; font-size: 1.5rem; color: #00ffcc; }
+        .close-btn {
+            background: none; border: 1px solid #00ffcc; color: #00ffcc;
+            padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: bold;
+        }
+        .manager-content {
+            flex: 1; overflow-y: auto; padding: 20px;
+        }
+        .ssd-row {
+            background: rgba(255, 255, 255, 0.05); border-radius: 12px;
+            padding: 16px; margin-bottom: 14px; border-left: 4px solid #00ffcc;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .ssd-info-block { flex: 1; padding-right: 15px; }
+        .ssd-row-title { font-size: 1.2rem; font-weight: bold; margin-bottom: 4px; }
+        .ssd-row-meta { font-size: 0.9rem; color: #a0aec0; }
+        .print-btn {
+            background: #00ffcc; border: none; color: #0a111c;
+            padding: 10px 14px; border-radius: 8px; font-weight: bold;
+            cursor: pointer; display: flex; align-items: center; gap: 6px;
+            transition: background 0.2s;
+        }
+        .print-btn:disabled { background: #4a5568; color: #a0aec0; }
+    </style></head><body>
+
     <div id="loading-overlay">
         <div class="spinner"></div>
-        Kamera wird initialisiert...
+        MNAU HUD wird geladen...
     </div>
 
     <video id="video" playsinline></video>
@@ -109,7 +154,29 @@
         </div>
     </div>
 
+    <div class="fab" onclick="openManager()">
+        <svg viewBox="0 0 24 24">
+            <path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/>
+        </svg>
+    </div>
+
+    <div id="manager-overlay" class="manager-overlay">
+        <div class="manager-header">
+            <h1>MNAU HUD Database</h1>
+            <button class="close-btn" onclick="closeManager()">Schließen</button>
+        </div>
+        <div id="manager-content" class="manager-content">
+            </div>
+    </div>
+
     <script>
+        // ----------------------------------------------------
+        // HIER DEINE AIRTABLE DATEN EINTRAGEN!
+        const airtableToken = "pat4ytEWExJctNU62.59f8c764a353cf3d3571ea45e9d0d2e713e95a5a83499e97c5770f60850170b9";
+        const baseId = "appXKM0UQ8uJLuiNB";
+        const tableName = "SSDs";
+        // ----------------------------------------------------
+
         const video = document.getElementById('video');
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
@@ -117,7 +184,6 @@
         let isFetching = false;
         let clearTimer = null;
 
-        // Rückkamera des Smartphones anfordern
         navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
             .then(function(stream) {
                 video.srcObject = stream;
@@ -127,11 +193,10 @@
                 requestAnimationFrame(tick);
             })
             .catch(function(err) {
-                document.getElementById('loading-overlay').innerText = "Kamerazugriff verweigert oder nicht unterstützt (HTTPS aktiv?).";
+                document.getElementById('loading-overlay').innerText = "Kamerazugriff verweigert oder nicht unterstützt.";
                 console.error(err);
             });
 
-        // Kontinuierlicher Scan-Loop (60 mal pro Sekunde)
         function tick() {
             if (video.readyState === video.HAVE_ENOUGH_DATA) {
                 canvas.height = video.videoHeight;
@@ -147,7 +212,7 @@
                     if (scannedUUID.length > 5) {
                         handleQRDetected(scannedUUID);
                         if (scannedUUID === lastUUID) {
-                            resetClearTimer(); // Timer verlängern, solange Code im Bild ist
+                            resetClearTimer();
                         }
                     }
                 }
@@ -157,7 +222,6 @@
 
         async function handleQRDetected(uuid) {
             if (uuid === lastUUID || isFetching) return;
-            
             if (clearTimer) clearTimeout(clearTimer);
             isFetching = true;
             lastUUID = uuid;
@@ -168,20 +232,12 @@
             const ordnerEl = document.getElementById('ssd-ordner');
             const updateEl = document.getElementById('ssd-update');
 
-            // Visuelles Laden aktivieren
             card.style.display = 'block';
             card.style.borderColor = '#00ffcc';
             nameEl.innerText = "Verbinde mit Airtable...";
             speicherEl.innerText = "UUID erkannt: " + uuid.substring(0,8) + "...";
             ordnerEl.innerText = "Lade Ordnerstruktur...";
             updateEl.innerText = "-";
-
-            // ----------------------------------------------------
-            // HIER DEINE AIRTABLE DATEN EINTRAGEN!
-            const airtableToken = "pat4ytEWExJctNU62.59f8c764a353cf3d3571ea45e9d0d2e713e95a5a83499e97c5770f60850170b9";
-            const baseId = "appXKM0UQ8uJLuiNB";
-            const tableName = "SSDs";
-            // ----------------------------------------------------
 
             try {
                 const response = await fetch(`https://api.airtable.com/v0/${baseId}/${tableName}?filterByFormula={UUID}='${uuid}'`, {
@@ -195,8 +251,6 @@
                     speicherEl.innerText = fields.Speicher || "Keine Speicherinfo";
                     ordnerEl.innerText = fields.Ordner || "(Leer)";
                     updateEl.innerText = "Zuletzt aktualisiert: " + (fields.Updates || "-");
-
-                    // Grünes Aufblitzen bei Erfolg
                     card.style.borderColor = '#00ff00';
                     setTimeout(() => { card.style.borderColor = '#00ffcc'; }, 600);
                 } else {
@@ -215,7 +269,6 @@
             }
         }
 
-        // Blendet das Schild nach 6 Sekunden ohne Sichtkontakt automatisch wieder aus
         function resetClearTimer() {
             if (clearTimer) clearTimeout(clearTimer);
             clearTimer = setTimeout(() => {
@@ -223,6 +276,96 @@
                 lastUUID = "";
             }, 6000); 
         }
-    </script>
-</body>
-</html>
+
+        /* NEU: Manager Logik für Datenbank-Übersicht */
+        async function openManager() {
+            const overlay = document.getElementById('manager-overlay');
+            const content = document.getElementById('manager-content');
+            overlay.style.display = 'flex';
+            content.innerHTML = '<div style="color:#00ffcc; text-align:center; padding:20px;">Lade Airtable-Datenbank...</div>';
+
+            try {
+                const response = await fetch(`https://api.airtable.com/v0/${baseId}/${tableName}`, {
+                    headers: { Authorization: `Bearer ${airtableToken}` }
+                });
+                const data = await response.json();
+                content.innerHTML = '';
+
+                if (data.records && data.records.length > 0) {
+                    data.records.forEach(record => {
+                        const f = record.fields;
+                        if (!f.UUID || !f.Name) return;
+
+                        const row = document.createElement('div');
+                        row.className = 'ssd-row';
+                        row.innerHTML = `
+                            <div class="ssd-info-block">
+                                <div class="ssd-row-title">${f.Name}</div>
+                                <div class="ssd-row-meta">Speicher: ${f.Speicher || 'Keine Info'}</div>
+                                <div class="ssd-row-meta" style="font-size:0.75rem; color:#718096; margin-top:4px;">UUID: ${f.UUID}</div>
+                            </div>
+                            <button class="print-btn" onclick="generateLabelPDF('${f.Name}', '${f.UUID}')">
+                                <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"/></svg>
+                                Label
+                            </button>
+                        `;
+                        content.appendChild(row);
+                    });
+                } else {
+                    content.innerHTML = '<div style="text-align:center; color:#a0aec0;">Keine SSDs in Airtable gefunden.</div>';
+                }
+            } catch (error) {
+                content.innerHTML = '<div style="color:#ff3333; text-align:center;">Fehler beim Laden von Airtable.</div>';
+                console.error(error);
+            }
+        }
+
+        function closeManager() {
+            document.getElementById('manager-overlay').style.display = 'none';
+        }
+
+        /* NEU: PDF Etiketten-Generator (15mm x 50mm) */
+        async function generateLabelPDF(name, uuid) {
+            try {
+                const { jsPDF } = window.jspdf;
+                
+                // Erstelle QR-Code Code als temporäre Bild-DataURL (Größe 200x200 für brutale Schärfe beim Druck)
+                const qrDataUrl = await QRCode.toDataURL(uuid, { margin: 1, width: 200 });
+
+                // Label-Dimensionen: 15mm breit, 50mm lang
+                const doc = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: [15, 50]
+                });
+
+                // 1. Logo einfügen (zuerst dein Logo)
+                // Da logo.png im selben Verzeichnis auf GitHub Pages liegt, können wir es direkt greifen.
+                // Platzierung: 1mm links Rand, 2mm von oben, Breite 13mm (passt perfekt auf 15mm Band), Höhe 13mm
+                doc.addImage('logo.png', 'PNG', 1, 2, 13, 13);
+
+                // 2. Trennlinie oder Text (Optional, hier der Name der SSD zur Absicherung)
+                doc.setFont("Helvetica", "bold");
+                doc.setFontSize(5); // Sehr kleine Schrift für 15mm Breite
+                doc.setTextColor(0, 0, 0);
+                doc.text(name, 7.5, 18, { align: "center" });
+
+                // 3. QR-Code einfügen (danach der QR-Code)
+                // Platzierung: 1mm links Rand, 21mm von oben, Breite 13mm, Höhe 13mm
+                doc.addImage(qrDataUrl, 'JPEG', 1, 21, 13, 13);
+
+                // 4. Text-Zusatz ganz unten (UUID gekürzt als visueller Check)
+                doc.setFont("Helvetica", "normal");
+                doc.setFontSize(4);
+                doc.text(uuid.substring(0, 18), 7.5, 37, { align: "center" });
+                doc.text(uuid.substring(18), 7.5, 39, { align: "center" });
+
+                // PDF-Download triggern
+                doc.save(`MNAU_Label_${name.replace(/\s+/g, '_')}.pdf`);
+
+            } catch (err) {
+                alert("Fehler beim Generieren des PDFs. Prüfe, ob logo.png auf GitHub liegt.");
+                console.error(err);
+            }
+        }
+    </script></body></html>
