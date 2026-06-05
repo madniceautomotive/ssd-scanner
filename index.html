@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MNAU SSD AR-Scanner</title>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <style>
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            overflow: hidden; background-color: #000;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        #video {
+            width: 100%; height: 100%; object-fit: cover;
+            position: absolute; top: 0; left: 0; z-index: 1;
+        }
+        .scan-container {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 2; pointer-events: none;
+        }
+        /* Das Visier in der Mitte des Bildschirms */
+        .scan-region {
+            position: absolute; top: 40%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 240px; height: 240px;
+            border: 2px dashed rgba(0, 255, 204, 0.5);
+            border-radius: 24px;
+            box-sizing: border-box;
+        }
+        .scan-region::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 3px;
+            background: #00ffcc; box-shadow: 0 0 12px #00ffcc;
+            animation: scan 2s linear infinite;
+        }
+        @keyframes scan {
+            0% { top: 0; }
+            50% { top: 100%; }
+            100% { top: 0; }
+        }
+        /* Das stylische, schwebende AR-Schild (Cyber-HUD Look) */
+        .ar-card {
+            position: absolute; bottom: 40px; left: 50%;
+            transform: translateX(-50%); width: 92%; max-width: 420px;
+            background: rgba(10, 17, 28, 0.94);
+            border: 2px solid #00ffcc;
+            box-shadow: 0 0 30px rgba(0, 255, 204, 0.3);
+            border-radius: 16px; padding: 20px; color: white;
+            box-sizing: border-box; transition: all 0.3s ease;
+            display: none; pointer-events: auto;
+        }
+        .ar-card h2 {
+            margin: 0 0 4px 0; color: #00ffcc; font-size: 1.4rem;
+            letter-spacing: 0.5px;
+        }
+        .speicher-info {
+            font-size: 1.1rem; font-weight: bold; color: #fff; margin-bottom: 12px;
+        }
+        .folder-title {
+            font-size: 0.8rem; text-transform: uppercase; color: #718096;
+            margin-bottom: 6px; letter-spacing: 1px;
+        }
+        .folder-list {
+            background: rgba(255, 255, 255, 0.06); border-radius: 8px;
+            padding: 12px; max-height: 140px; overflow-y: auto;
+            font-family: "SF Mono", Monaco, Consolas, monospace;
+            font-size: 0.85rem; white-space: pre-wrap; line-height: 1.4;
+            border-left: 3px solid #00ffcc;
+        }
+        .update-time {
+            font-size: 0.72rem; color: #a0aec0; text-align: right; margin-top: 10px;
+        }
+        #loading-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: #0a111c; z-index: 10; display: flex;
+            flex-direction: column; align-items: center; justify-content: center;
+            color: #00ffcc; font-size: 1.2rem;
+        }
+        .spinner {
+            width: 40px; height: 40px; border: 4px solid rgba(0,255,204,0.1);
+            border-top-color: #00ffcc; border-radius: 50%;
+            animation: spin 1s linear infinite; margin-bottom: 20px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+        Kamera wird initialisiert...
+    </div>
+
+    <video id="video" playsinline></video>
+    <canvas id="canvas" style="display:none;"></canvas>
+
+    <div class="scan-container">
+        <div class="scan-region"></div>
+        
+        <div id="ar-card" class="ar-card">
+            <h2 id="ssd-name">-</h2>
+            <div id="ssd-speicher" class="speicher-info">-</div>
+            <div class="folder-title">Hauptordner:</div>
+            <div id="ssd-ordner" class="folder-list">-</div>
+            <div id="ssd-update" class="update-time">-</div>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let lastUUID = "";
+        let isFetching = false;
+        let clearTimer = null;
+
+        // Rückkamera des Smartphones anfordern
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+            .then(function(stream) {
+                video.srcObject = stream;
+                video.setAttribute("playsinline", true);
+                video.play();
+                document.getElementById('loading-overlay').style.display = 'none';
+                requestAnimationFrame(tick);
+            })
+            .catch(function(err) {
+                document.getElementById('loading-overlay').innerText = "Kamerazugriff verweigert oder nicht unterstützt (HTTPS aktiv?).";
+                console.error(err);
+            });
+
+        // Kontinuierlicher Scan-Loop (60 mal pro Sekunde)
+        function tick() {
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                canvas.height = video.videoHeight;
+                canvas.width = video.videoWidth;
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                    inversionAttempts: "dontInvert",
+                });
+
+                if (code && code.data) {
+                    const scannedUUID = code.data.trim();
+                    if (scannedUUID.length > 5) {
+                        handleQRDetected(scannedUUID);
+                        if (scannedUUID === lastUUID) {
+                            resetClearTimer(); // Timer verlängern, solange Code im Bild ist
+                        }
+                    }
+                }
+            }
+            requestAnimationFrame(tick);
+        }
+
+        async function handleQRDetected(uuid) {
+            if (uuid === lastUUID || isFetching) return;
+            
+            if (clearTimer) clearTimeout(clearTimer);
+            isFetching = true;
+            lastUUID = uuid;
+
+            const card = document.getElementById('ar-card');
+            const nameEl = document.getElementById('ssd-name');
+            const speicherEl = document.getElementById('ssd-speicher');
+            const ordnerEl = document.getElementById('ssd-ordner');
+            const updateEl = document.getElementById('ssd-update');
+
+            // Visuelles Laden aktivieren
+            card.style.display = 'block';
+            card.style.borderColor = '#00ffcc';
+            nameEl.innerText = "Verbinde mit Airtable...";
+            speicherEl.innerText = "UUID erkannt: " + uuid.substring(0,8) + "...";
+            ordnerEl.innerText = "Lade Ordnerstruktur...";
+            updateEl.innerText = "-";
+
+            // ----------------------------------------------------
+            // HIER DEINE AIRTABLE DATEN EINTRAGEN!
+            const airtableToken = "pat4ytEWExJctNU62.59f8c764a353cf3d3571ea45e9d0d2e713e95a5a83499e97c5770f60850170b9";
+            const baseId = "tblUu1JitaoVT5SG6";
+            const tableName = "SSDs";
+            // ----------------------------------------------------
+
+            try {
+                const response = await fetch(`https://api.airtable.com/v0/${baseId}/${tableName}?filterByFormula={UUID}='${uuid}'`, {
+                    headers: { Authorization: `Bearer ${airtableToken}` }
+                });
+                const data = await response.json();
+
+                if (data.records && data.records.length > 0) {
+                    const fields = data.records[0].fields;
+                    nameEl.innerText = fields.Name || "Unbenannte SSD";
+                    speicherEl.innerText = fields.Speicher || "Keine Speicherinfo";
+                    ordnerEl.innerText = fields.Ordner || "(Leer)";
+                    updateEl.innerText = "Zuletzt aktualisiert: " + (fields.Updates || "-");
+
+                    // Grünes Aufblitzen bei Erfolg
+                    card.style.borderColor = '#00ff00';
+                    setTimeout(() => { card.style.borderColor = '#00ffcc'; }, 600);
+                } else {
+                    nameEl.innerText = "Unbekannte SSD";
+                    speicherEl.innerText = "UUID nicht registriert.";
+                    ordnerEl.innerText = "Stecke die SSD zuerst am Mac an.";
+                    card.style.borderColor = '#ff3333';
+                }
+            } catch (error) {
+                nameEl.innerText = "Verbindungsfehler";
+                speicherEl.innerText = "Airtable-Server nicht erreichbar.";
+                console.error(error);
+            } finally {
+                isFetching = false;
+                resetClearTimer();
+            }
+        }
+
+        // Blendet das Schild nach 6 Sekunden ohne Sichtkontakt automatisch wieder aus
+        function resetClearTimer() {
+            if (clearTimer) clearTimeout(clearTimer);
+            clearTimer = setTimeout(() => {
+                document.getElementById('ar-card').style.display = 'none';
+                lastUUID = "";
+            }, 6000); 
+        }
+    </script>
+</body>
+</html>
