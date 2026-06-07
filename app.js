@@ -52,6 +52,39 @@ async function fetchDatabase() {
     }
 }
 
+/* LIVE-UPDATE AN AIRTABLE: Wird getriggert, wenn das Firmen-Dropdown geändert wird */
+async function updateCompanyField(recordId, newFirma) {
+    try {
+        const response = await fetch(`https://api.airtable.com/v0/${baseId}/${tableName}/${recordId}`, {
+            method: "PATCH",
+            headers: {
+                "Authorization": `Bearer ${airtableToken}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                fields: {
+                    "Firma": newFirma
+                }
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error("Airtable-Update fehlgeschlagen.");
+        }
+
+        // Lokalen Cache updaten, damit Sortierung/Suche direkt ohne Reload stimmig bleiben
+        const localRecord = databaseRecords.find(r => r.id === recordId);
+        if (localRecord) {
+            localRecord.fields.Firma = newFirma;
+        }
+        
+        console.log(`SSD [${recordId}] erfolgreich auf Firma '${newFirma}' umgestellt.`);
+    } catch (error) {
+        alert("Fehler beim Speichern der Firma in Airtable. Bitte Internetverbindung prüfen!");
+        console.error(error);
+    }
+}
+
 /* STARTET DIE KAMERA: Wird aufgerufen, wenn der Scanner geöffnet wird */
 function openScanner() {
     document.getElementById('scanner-overlay').style.display = 'block';
@@ -90,7 +123,6 @@ function closeScanner() {
     document.getElementById('ar-card').style.display = 'none';
 
     if (cameraStream) {
-        // Schaltet jede einzelne Linse/Spur am Smartphone physikalisch ab (Licht geht aus)
         cameraStream.getTracks().forEach(track => track.stop());
         cameraStream = null;
     }
@@ -100,7 +132,7 @@ function closeScanner() {
 
 // QR-Code Live-Scan-Schleife (läuft nur, wenn Scanner aktiv ist)
 function tick() {
-    if (!isScannerActive) return; // Schleife abbrechen, falls Scanner geschlossen wurde
+    if (!isScannerActive) return;
 
     if (video.readyState === video.HAVE_ENOUGH_DATA) {
         canvas.height = video.videoHeight;
@@ -221,17 +253,18 @@ function renderManagerList() {
     content.innerHTML = '';
 
     if (databaseRecords.length === 0) {
-        content.innerHTML = '<div style="text-align:center; color:#a0aec0; padding:20px;">Keine SSDs in Airtable gefunden.</div>';
+        content.innerHTML = '<div style="text-align:center; color:#a0aec0;">Keine SSDs in Airtable gefunden.</div>';
         return;
     }
 
-    // 1. FILTERN nach Suchbegriff
+    // 1. FILTERN nach Suchbegriff (Durchsucht jetzt auch den Firmennamen!)
     let processedRecords = databaseRecords.filter(record => {
         const f = record.fields;
         const name = (f.Name || '').toLowerCase();
         const speicher = (f.Speicher || '').toLowerCase();
         const ordner = (f.Ordner || '').toLowerCase();
-        return name.includes(searchTerm) || speicher.includes(searchTerm) || ordner.includes(searchTerm);
+        const firma = (f.Firma || 'MNAU').toLowerCase(); // Nutze MNAU als Such-Fallback bei leeren Zeilen
+        return name.includes(searchTerm) || speicher.includes(searchTerm) || ordner.includes(searchTerm) || firma.includes(searchTerm);
     });
 
     if (processedRecords.length === 0) {
@@ -257,6 +290,9 @@ function renderManagerList() {
 
         const cleanFolders = f.Ordner ? f.Ordner.split('\\n').filter(Boolean).join('\n') : '(Keine Ordner vorhanden)';
         
+        // Intelligenten Firmen-Standardwert festlegen
+        const currentFirma = f.Firma || "MNAU";
+
         const storageInfo = parseStorageData(f.Speicher);
         let barColor = '#2ecc71'; 
         if (storageInfo.percentUsed >= 90) {
@@ -277,9 +313,9 @@ function renderManagerList() {
                     </div>
                 </div>
                 <div class="action-group">
-                    <select id="logo-select-${f.UUID}" class="logo-select">
-                        <option value="mnau_logo.svg">MNAU</option>
-                        <option value="gecko_logo.svg">Gecko</option>
+                    <select id="logo-select-${f.UUID}" class="logo-select" onchange="updateCompanyField('${record.id}', this.value)">
+                        <option value="MNAU" ${currentFirma === 'MNAU' ? 'selected' : ''}>MNAU</option>
+                        <option value="Gecko" ${currentFirma === 'Gecko' ? 'selected' : ''}>Gecko</option>
                     </select>
                     <button class="print-btn" onclick="generateLabelPNG('${f.Name}', '${f.UUID}')">
                         <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"/></svg>
@@ -299,7 +335,10 @@ function renderManagerList() {
 /* HTML5 Off-Screen Canvas Label Generator - MIT SMARTEM WORT-UMBRUCH */
 async function generateLabelPNG(name, uuid) {
     try {
-        const selectedLogoFile = document.getElementById(`logo-select-${uuid}`).value;
+        // Mappt die Text-Auswahl ("MNAU" / "Gecko") wieder auf die entsprechende SVG-Grafik
+        const selectedCompany = document.getElementById(`logo-select-${uuid}`).value;
+        const selectedLogoFile = selectedCompany === "Gecko" ? "gecko_logo.svg" : "mnau_logo.svg";
+
         const qrDataUrl = await QRCode.toDataURL(uuid, { margin: 1, width: 340 });
 
         const labelCanvas = document.createElement('canvas');
@@ -388,12 +427,12 @@ async function generateLabelPNG(name, uuid) {
         lCtx.drawImage(qrImg, 15, 530, 270, 270);
 
         const downloadLink = document.createElement('a');
-        downloadLink.download = `MNAU_Label_${name.replace(/\s+/g, '_')}.png`;
+        downloadLink.download = `${selectedCompany}_Label_${name.replace(/\s+/g, '_')}.png`;
         downloadLink.href = labelCanvas.toDataURL('image/png');
         downloadLink.click();
 
     } catch (err) {
-        alert("Fehler beim Erstellen des PNG-Labels. Vergewissere dich, dass mnau_logo.svg und gecko_logo.svg im Stammordner auf GitHub liegen.");
+        alert("Fehler beim Erstellen des PNG-Labels. Vergewissere dich, dass mnau_logo.svg und gecko_logo.svg im Stammordner liegen.");
         console.error(err);
     }
 }
