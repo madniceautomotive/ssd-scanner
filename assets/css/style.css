@@ -9,7 +9,7 @@ body, html {
 }
 
 /* ==================================================== */
-/* CLEAN & RENDER-OPTIMIZED NEW HEADER DESIGN          */
+/* CLEAN & RENDER-OPTIMIZED HEADER DESIGN               */
 /* ==================================================== */
 .database-header {
     padding: 20px 24px; border-bottom: 1px solid rgba(0, 102, 58, 0.25);
@@ -25,12 +25,11 @@ body, html {
     -webkit-background-clip: text; -webkit-text-fill-color: transparent;
 }
 
-/* Der neue, prominente Kontroll-Balken */
 .header-controls-row {
     display: flex; width: 100%; gap: 12px; align-items: center;
 }
 .search-group {
-    flex: 2; /* Suchfeld bekommt den meisten Platz */
+    flex: 2;
 }
 .sort-group {
     flex: 1; min-width: 180px;
@@ -56,7 +55,6 @@ body, html {
 }
 .sort-select:active, .logo-select:active { transform: scale(0.98); }
 
-/* Taktiler Feature-Toggle-Button im Header */
 .feature-toggle-btn {
     background: #1c1c1c; border: 1px solid rgba(0, 102, 58, 0.5); color: #a0aec0;
     padding: 8px 14px; border-radius: 8px; font-size: 0.82rem; font-weight: 700;
@@ -68,16 +66,13 @@ body, html {
 .feature-toggle-btn:hover svg { fill: #00ff73; transform: rotate(45deg); }
 .feature-toggle-btn:active { transform: scale(0.95); }
 
-/* ==================================================== */
-/* NEW: SLIDING FEATURE HUB DRAWERS STYLING             */
-/* ==================================================== */
+/* SLIDING FEATURE HUB DRAWERS STYLING */
 .feature-hub-panel {
     background: #161616; border-bottom: 1px solid rgba(0, 102, 58, 0.15);
     max-height: 0; overflow: hidden; opacity: 0; visibility: hidden;
     transition: max-height 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease, padding 0.4s, visibility 0.4s;
     display: flex; flex-direction: column; gap: 12px; box-sizing: border-box; padding: 0 24px;
 }
-/* Aktiv-Zustand per JS zugeschaltet */
 .feature-hub-panel.active {
     max-height: 250px; opacity: 1; visibility: visible; padding: 16px 24px;
 }
@@ -105,9 +100,7 @@ body, html {
 .alloc-chip-container { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .alloc-target-chip { background: #1c1c1c; border: 1px solid #00663a; color: #ffffff; padding: 4px 12px; border-radius: 20px; font-weight: 600; font-size: 0.8rem; }
 
-/* ==================================================== */
-/* CORE CONTAINER LISTINGS                              */
-/* ==================================================== */
+/* CORE CONTAINER LISTINGS */
 .manager-content { flex: 1; overflow-y: auto; padding: 20px; padding-bottom: 90px; }
 
 .ssd-row {
@@ -140,20 +133,12 @@ body, html {
 .ssd-row.recommended-alloc-row { background: rgba(0, 102, 58, 0.06); box-shadow: 0 0 15px rgba(0, 102, 58, 0.15) !important; }
 .ssd-row.gecko-brand.recommended-alloc-row { background: rgba(41, 171, 226, 0.04); box-shadow: 0 0 15px rgba(41, 171, 226, 0.15) !important; }
 
-/* ==================================================== */
-/* FIXED: SMART RESPONSIVE OVERLAP SHIFT FOR MOBILE     */
-/* ==================================================== */
+/* SMART RESPONSIVE OVERLAP SHIFT FOR MOBILE */
 @media (max-width: 580px) {
     .header-controls-row { flex-direction: column; gap: 10px; }
     .search-group, .sort-group { width: 100%; }
-
-    /* Der magische Knick: Teilt die Titel-Zeile sauber auf, wenn es am Display eng wird */
-    .ssd-row-header {
-        flex-direction: column; align-items: stretch; gap: 14px;
-    }
-    .action-group {
-        justify-content: space-between; width: 100%; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 12px;
-    }
+    .ssd-row-header { flex-direction: column; align-items: stretch; gap: 14px; }
+    .action-group { justify-content: space-between; width: 100%; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 12px; }
     .action-group .logo-select { flex: 1; }
 }
 
@@ -196,8 +181,29 @@ body, html {
 .ar-card { position: absolute; bottom: 30px; left: 50%; transform: translate(-50%, 120%); width: 92%; max-width: 420px; background: #1a1a1a !important; border: 2px solid #00663a; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.8); border-radius: 16px; padding: 20px; color: white; box-sizing: border-box; pointer-events: auto; z-index: 13; opacity: 0; transition: transform 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.2), opacity 0.3s ease; }
 .ar-card.active { transform: translate(-50%, 0); opacity: 1; }
 .update-time { font-size: 0.72rem; color: #a0aec0; text-align: right; margin-top: 22px; border-top: 1px dashed rgba(255, 255, 255, 0.08); padding-top: 10px; }
-.close-scanner-btn { position: absolute; top: 24px; right: 20px; z-index: 15; background: #e74c3c; border: 2px solid #ffffff; color: white; padding: 10px 18px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 0.85rem; box-shadow: 0 4px 15px rgba(0,0,0,0.4); transition: transform 0.15s ease, background-color 0.2s; }
-.close-scanner-btn:active { transform: scale(0.93); }
+
+/* ==================================================== */
+/* FIXED: NEW SLEEK CLOSE BUTTON DESIGN                */
+/* ==================================================== */
+.close-scanner-btn {
+    position: absolute; top: 24px; right: 24px; z-index: 15;
+    /* Dunkel, semi-transparent, feiner Rahmen in Firmenfarbe */
+    background: rgba(20, 20, 20, 0.8);
+    border: 1px solid rgba(0, 255, 115, 0.4);
+    color: #a0aec0;
+    padding: 10px 18px; border-radius: 8px; cursor: pointer; font-weight: 700;
+    font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+/* Hover-Effekt: Wird dezent rot, um Warnung/Schließen anzuzeigen */
+.close-scanner-btn:hover {
+    color: white;
+    background: rgba(231, 76, 60, 0.8); /* Warn-Rot */
+    border-color: #ffffff;
+    box-shadow: 0 0 15px rgba(231, 76, 60, 0.4);
+}
+.close-scanner-btn:active { transform: scale(0.95); }
 
 #loading-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #121212; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #ffffff; font-size: 1.2rem; }
 .spinner { width: 40px; height: 40px; border: 4px solid rgba(0, 102, 58, 0.2); border-top-color: #00663a; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px; }

@@ -8,12 +8,12 @@ const ctx = canvas.getContext('2d');
 let lastUUID = "";
 let isFetching = false;
 let clearTimer = null;
-let databaseRecords = [];
+let databaseRecords = []; // Lokaler Zwischenspeicher für Sortierung/Suche
 
 let cameraStream = null;
 let isScannerActive = false;
 
-// Airtable Konfiguration
+// Database Konfiguration (ehemals Airtable)
 const airtableToken = "pat4ytEWExJctNU62.59f8c764a353cf3d3571ea45e9d0d2e713e95a5a83499e97c5770f60850170b9";
 const baseId = "appXKM0UQ8uJLuiNB";
 const tableName = "SSDs";
@@ -32,7 +32,7 @@ document.addEventListener("DOMContentLoaded", () => {
     fetchDatabase();
 });
 
-/* NEU: Steuert das geschmeidige Ein- und Ausfahren der Feature-Schublade */
+/* Steuert das geschmeidige Ein- und Ausfahren der Feature-Schublade */
 function toggleFeatureHub() {
     const panel = document.getElementById('feature-hub-panel');
     panel.classList.toggle('active');
@@ -48,7 +48,8 @@ async function fetchDatabase() {
         renderManagerList(true);
         document.getElementById('loading-overlay').style.display = 'none';
     } catch (error) {
-        document.getElementById('loading-overlay').innerText = "Fehler beim Laden der Airtable-Datenbank.";
+        // REPARIERT: Text geändert
+        document.getElementById('loading-overlay').innerText = "Fehler beim Laden der Database.";
         console.error(error);
     }
 }
@@ -268,7 +269,8 @@ async function updateCompanyField(recordId, newFirma) {
             body: JSON.stringify({ fields: { "Firma": newFirma } })
         });
     } catch (error) {
-        console.error("Airtable-Hintergrundsync fehlgeschlagen:", error);
+        // REPARIERT: Text geändert
+        console.error("Database-Hintergrundsync fehlgeschlagen:", error);
     }
 }
 
@@ -300,7 +302,6 @@ function openScanner() {
         });
 }
 
-/* STOPPT DIE KAMERA VIA HARDWARE-COMMAND */
 function closeScanner() {
     isScannerActive = false;
     document.getElementById('scanner-overlay').classList.remove('active');
@@ -353,7 +354,8 @@ async function handleQRDetected(uuid) {
 
     card.classList.add('active');
     card.style.borderColor = '#00663a';
-    nameEl.innerText = "Verbinde mit Airtable...";
+    // REPARIERT: Text geändert
+    nameEl.innerText = "Verbinde mit Database...";
     speicherEl.innerText = "UUID erkannt: " + uuid.substring(0,8) + "...";
     ordnerEl.innerHTML = '<div class="no-folders">Lade Ordnerstruktur...</div>';
     updateEl.innerText = "-";
@@ -377,12 +379,13 @@ async function handleQRDetected(uuid) {
         } else {
             nameEl.innerText = "Unbekannte SSD";
             speicherEl.innerText = "Gescannte ID: " + uuid;
-            ordnerEl.innerHTML = '<div class="no-folders">Nicht in Airtable registriert.</div>';
+            // REPARIERT: Text geändert
+            ordnerEl.innerHTML = '<div class="no-folders">Nicht in Database registriert.</div>';
             card.style.borderColor = '#ff3333';
         }
     } catch (error) {
         nameEl.innerText = "Verbindungsfehler";
-        speicherEl.innerText = "Airtable-Server nicht erreichbar.";
+        speicherEl.innerText = "Server nicht erreichbar.";
     } finally {
         isFetching = false;
         resetClearTimer();
@@ -402,4 +405,4 @@ window.closeScanner = closeScanner;
 window.renderManagerList = renderManagerList;
 window.updateCompanyField = updateCompanyField;
 window.generateLabelPNG = generateLabelPNG;
-window.toggleFeatureHub = toggleFeatureHub; // Dem Window-Scope übergeben für HTML-Zugriff
+window.toggleFeatureHub = toggleFeatureHub;
