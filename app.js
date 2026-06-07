@@ -75,8 +75,8 @@ function parseStorageData(speicherStr) {
     return result;
 }
 
-/* Ordner-Parser: Erstellt saubere UI-Chips inklusive kaskadierender Einblende-Animation */
-function generateFolderHTML(ordnerStr, company) {
+/* Ordner-Parser: Erstellt saubere UI-Chips inklusive gezieltem Suchbegriff-Highlighting */
+function generateFolderHTML(ordnerStr, company, searchTerm = "") {
     if (!ordnerStr || ordnerStr.trim() === "" || ordnerStr.includes("(Leer)")) {
         return '<div class="no-folders">Keine Ordner vorhanden</div>';
     }
@@ -86,14 +86,21 @@ function generateFolderHTML(ordnerStr, company) {
     
     const iconColor = company === "Gecko" ? "#29ABE2" : "#00663a";
     
-    return folderArray.map((folder, index) => `
-        <div class="folder-item" style="animation-delay: ${index * 0.03}s;">
-            <svg class="folder-icon" style="fill: ${iconColor};" viewBox="0 0 24 24">
-                <path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
-            </svg>
-            <span class="folder-name">${folder.trim()}</span>
-        </div>
-    `).join('');
+    return folderArray.map((folder, index) => {
+        const trimmedFolder = folder.trim();
+        // Prüfen, ob dieser spezifische Ordner mit dem Suchbegriff übereinstimmt
+        const isMatched = searchTerm !== "" && trimmedFolder.toLowerCase().includes(searchTerm);
+        const highlightClass = isMatched ? "highlighted-folder" : "";
+        
+        return `
+            <div class="folder-item ${highlightClass}" style="animation-delay: ${index * 0.03}s;">
+                <svg class="folder-icon" style="fill: ${isMatched ? (company === 'Gecko' ? '#121212' : '#ffffff') : iconColor};" viewBox="0 0 24 24">
+                    <path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
+                </svg>
+                <span class="folder-name">${trimmedFolder}</span>
+            </div>
+        `;
+    }).join('');
 }
 
 // ====================================================
@@ -101,7 +108,6 @@ function generateFolderHTML(ordnerStr, company) {
 // ====================================================
 
 document.addEventListener("DOMContentLoaded", () => {
-    // Parameter 'true' signalisiert den kaskadierenden Erst-Start der App
     fetchDatabase();
 });
 
@@ -114,7 +120,7 @@ async function fetchDatabase() {
         const data = await response.json();
         databaseRecords = data.records || [];
         
-        renderManagerList(true); // True = Erst-Vollaufbau mit Stagger-Effekt
+        renderManagerList(true); 
         document.getElementById('loading-overlay').style.display = 'none';
     } catch (error) {
         document.getElementById('loading-overlay').innerText = "Fehler beim Laden der Airtable-Datenbank.";
@@ -128,9 +134,7 @@ function renderManagerList(isInitialLoad = false) {
     const sortBy = document.getElementById('db-sort').value;
     const searchTerm = document.getElementById('db-search').value.toLowerCase().trim();
 
-    // ----------------------------------------------------
-    // FLIP - PHASE 1: FIRST (Alte Positionen aller Elemente scannen)
-    // ----------------------------------------------------
+    // FLIP - PHASE 1: FIRST (Alte Positionen scannen)
     const firstPositions = {};
     if (!isInitialLoad) {
         content.querySelectorAll('[data-flip-id]').forEach(el => {
@@ -168,7 +172,6 @@ function renderManagerList(isInitialLoad = false) {
         processedRecords.sort((a, b) => companyComparator(a, b) || parseStorageData(b.fields.Speicher).freeMB - parseStorageData(a.fields.Speicher).freeMB);
     }
 
-    // DOM komplett leeren und neu aufbauen
     content.innerHTML = '';
     let lastCompanySeen = null;
 
@@ -195,11 +198,16 @@ function renderManagerList(isInitialLoad = false) {
         if (storageInfo.percentUsed >= 90) barColor = '#e74c3c'; 
         else if (storageInfo.percentUsed >= 70) barColor = '#f1c40f'; 
 
+        // UPGRADE: Prüfen, ob die Suche einen Ordner auf dieser SSD getroffen hat
+        const ordnerText = (f.Ordner || '').toLowerCase();
+        const hasMatchingFolder = searchTerm !== "" && ordnerText.includes(searchTerm);
+        // Falls ja, zwingen wir das HTML-Akkordeon via "open"-Attribut in den geöffneten Zustand!
+        const autoOpenAttribute = hasMatchingFolder ? "open" : "";
+
         const row = document.createElement('div');
         row.className = `ssd-row ${brandClass}`;
-        row.setAttribute('data-flip-id', record.id); // Wichtig für das Tracking
+        row.setAttribute('data-flip-id', record.id);
         
-        // Erst-Lade-Verzögerung für flüssigen App-Start
         if (isInitialLoad) {
             row.style.opacity = '0';
             row.style.transform = 'translateY(16px)';
@@ -230,45 +238,35 @@ function renderManagerList(isInitialLoad = false) {
                     </button>
                 </div>
             </div>
-            <details class="ssd-details">
+            <details class="ssd-details" ${autoOpenAttribute}>
                 <summary>Ordnerstruktur einblenden</summary>
-                <div class="ssd-folders-preview">${generateFolderHTML(f.Ordner, currentFirma)}</div>
+                <div class="ssd-folders-preview">${generateFolderHTML(f.Ordner, currentFirma, searchTerm)}</div>
             </details>
         `;
         content.appendChild(row);
     });
 
-    // ----------------------------------------------------
-    // FLIP - PHASE 2 & 3: LAST & INVERT (Verschiebungen berechnen)
-    // ----------------------------------------------------
+    // FLIP - PHASE 2, 3 & 4: PLAY
     if (!isInitialLoad) {
         content.querySelectorAll('[data-flip-id]').forEach(el => {
             const id = el.getAttribute('data-flip-id');
             const first = firstPositions[id];
-            
             if (first) {
                 const last = el.getBoundingClientRect();
                 const dy = first.top - last.top;
-                
                 if (dy !== 0) {
-                    // Element blitzschnell ohne Transition auf die Start-Position zurückzwingen
                     el.style.transition = 'none';
                     el.style.transform = `translateY(${dy}px)`;
                 }
             } else {
-                // Komplett neu auftauchende Elemente (z.B. durch Filterung) sanft einblenden
                 el.style.opacity = '0';
                 el.style.transform = 'translateY(15px)';
             }
         });
 
-        // ----------------------------------------------------
-        // FLIP - PHASE 4: PLAY (Mit snappy Physik an den neuen Platz gleiten lassen)
-        // ----------------------------------------------------
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
                 content.querySelectorAll('[data-flip-id]').forEach(el => {
-                    // Das extrem snappy 'Cubic-Bezier' sorgt für das edle Gleit-Gefühl
                     el.style.transition = 'transform 0.55s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.4s ease';
                     el.style.transform = 'translateY(0)';
                     el.style.opacity = '1';
@@ -278,16 +276,13 @@ function renderManagerList(isInitialLoad = false) {
     }
 }
 
-/* LIVE-UPDATE AN AIRTABLE: Schießt die Daten raus und delegiert die Animation an die FLIP-Engine */
+/* LIVE-UPDATE AN AIRTABLE */
 async function updateCompanyField(recordId, newFirma) {
-    // 1. Lokalen Cache sofort manipulieren
     const localRecord = databaseRecords.find(r => r.id === recordId);
     if (localRecord) localRecord.fields.Firma = newFirma;
     
-    // 2. Sofortigen Re-Render mit FLIP-Flugbewegung auslösen (false = kein kaskadierender Erst-Stagger)
     renderManagerList(false);
 
-    // 3. Im Hintergrund lautlos mit Airtable synchronisieren
     try {
         await fetch(`https://api.airtable.com/v0/${baseId}/${tableName}/${recordId}`, {
             method: "PATCH",
@@ -403,7 +398,10 @@ async function handleQRDetected(uuid) {
 
             nameEl.innerText = fields.Name || "Unbenannte SSD";
             speicherEl.innerText = cleanStorageUnits(fields.Speicher);
-            ordnerEl.innerHTML = generateFolderHTML(fields.Ordner, company);
+            
+            // Reicht ein leeres Feld ein, da beim physischen AR-Scannen per Kamera kein Suchfeld aktiv ist
+            ordnerEl.innerHTML = generateFolderHTML(fields.Ordner, company, "");
+            
             updateEl.innerText = "Zuletzt aktualisiert: " + (fields.Updates || "-");
             card.style.borderColor = brandColor;
         } else {
@@ -415,7 +413,7 @@ async function handleQRDetected(uuid) {
     } catch (error) {
         nameEl.innerText = "Verbindungsfehler";
         speicherEl.innerText = "Airtable-Server nicht erreichbar.";
-    } {
+    } finally {
         isFetching = false;
         resetClearTimer();
     }
