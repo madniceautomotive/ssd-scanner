@@ -23,29 +23,41 @@
 
 <div id="database-view">
     <div class="database-header">
-        <h1>MNAU Database</h1>
-
-        <div class="search-group">
-            <input type="text" id="db-search" class="search-input" placeholder="SSD oder Ordner suchen..." oninput="renderManagerList()">
+        <div class="header-main-row">
+            <h1>SSD Database</h1>
+            <button class="feature-toggle-btn" onclick="toggleFeatureHub()" title="Zusatzfeatures öffnen">
+                <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+                Features
+            </button>
         </div>
 
-        <div class="allocation-group">
-            <label for="db-alloc-val">Daten verteilen:</label>
-            <input type="number" id="db-alloc-val" class="search-input alloc-input" placeholder="z.B. 2" oninput="renderManagerList()">
-            <select id="db-alloc-unit" class="sort-select alloc-unit" onchange="renderManagerList()">
-                <option value="TB">TB</option>
-                <option value="GB">GB</option>
-            </select>
-        </div>
+        <div class="header-controls-row">
+            <div class="search-group">
+                <input type="text" id="db-search" class="search-input" placeholder="Schnellsuche für SSD oder Ordner..." oninput="renderManagerList()">
+            </div>
 
-        <div class="sort-group">
-            <label for="db-sort">Sortieren:</label>
-            <select id="db-sort" class="sort-select" onchange="renderManagerList()">
-                <option value="name">Name</option>
-                <option value="storage">Freier Speicher</option>
-            </select>
+            <div class="sort-group">
+                <select id="db-sort" class="sort-select" onchange="renderManagerList()">
+                    <option value="name">Sortieren: Alphabetisch</option>
+                    <option value="storage">Sortieren: Freier Speicher</option>
+                </select>
+            </div>
         </div>
     </div>
+
+    <div id="feature-hub-panel" class="feature-hub-panel">
+        <div class="feature-card">
+            <div class="feature-card-title">💾 Datenverteilungs-Planer (Drehtag)</div>
+            <div class="allocation-controls">
+                <input type="number" id="db-alloc-val" class="search-input alloc-input" placeholder="Menge" oninput="renderManagerList()">
+                <select id="db-alloc-unit" class="sort-select alloc-unit" onchange="renderManagerList()">
+                    <option value="TB">TB</option>
+                    <option value="GB">GB</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
     <div id="manager-content" class="manager-content"></div>
 </div>
 

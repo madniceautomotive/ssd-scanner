@@ -1,3 +1,4 @@
+// Importiert Berechnungen und Druck-Logiken aus den Modulen
 import { cleanStorageUnits, parseStorageData, generateFolderHTML } from './modules/helpers.js';
 import { generateLabelPNG } from './modules/printer.js';
 
@@ -31,6 +32,12 @@ document.addEventListener("DOMContentLoaded", () => {
     fetchDatabase();
 });
 
+/* NEU: Steuert das geschmeidige Ein- und Ausfahren der Feature-Schublade */
+function toggleFeatureHub() {
+    const panel = document.getElementById('feature-hub-panel');
+    panel.classList.toggle('active');
+}
+
 async function fetchDatabase() {
     try {
         const response = await fetch(`https://api.airtable.com/v0/${baseId}/${tableName}`, {
@@ -51,7 +58,7 @@ function renderManagerList(isInitialLoad = false) {
     const sortBy = document.getElementById('db-sort').value;
     const searchTerm = document.getElementById('db-search').value.toLowerCase().trim();
 
-    // FLIP - PHASE 1: FIRST (Alte Positionen sichern)
+    // FLIP - PHASE 1: FIRST
     const firstPositions = {};
     if (!isInitialLoad) {
         content.querySelectorAll('[data-flip-id]').forEach(el => {
@@ -88,7 +95,7 @@ function renderManagerList(isInitialLoad = false) {
 
     content.innerHTML = '';
 
-    // SPEICHER-ALLOKATIONS-RECHNER MODULE
+    // SPEICHER-ALLOKATIONS-RECHNER
     const allocVal = parseFloat(document.getElementById('db-alloc-val').value);
     const allocUnit = document.getElementById('db-alloc-unit').value;
     let targetMB = 0;
@@ -96,8 +103,9 @@ function renderManagerList(isInitialLoad = false) {
 
     if (!isNaN(allocVal) && allocVal > 0) {
         targetMB = allocUnit === "TB" ? allocVal * 1024 * 1024 : allocVal * 1024;
+
         let singleFits = processedRecords.filter(r => parseStorageData(r.fields.Speicher).freeMB >= targetMB);
-        let suggestionHTML = `<h3>💾 MNAU Speicher-Allokation (${allocVal} ${allocUnit})</h3>`;
+        let suggestionHTML = `<h3>💾 Speicher-Allokation (${allocVal} ${allocUnit})</h3>`;
 
         if (singleFits.length > 0) {
             suggestionHTML += `<p>➔ Folgende SSDs bieten <span class="alloc-highlight-green">einzeln</span> genügend freien Speicherplatz:</p><div class="alloc-chip-container">`;
@@ -123,12 +131,14 @@ function renderManagerList(isInitialLoad = false) {
 
             if (accumulatedMB >= targetMB) {
                 suggestionHTML += `<p>➔ Keine einzelne SSD groß genug. Daten <span class="alloc-highlight-blue">aufteilen empfohlen</span> auf folgende Units:</p><div class="alloc-chip-container">`;
-                comboSelected.forEach(r => { suggestionHTML += `<span class="alloc-target-chip">${r.fields.Name}</span>`; });
+                comboSelected.forEach(r => {
+                    suggestionHTML += `<span class="alloc-target-chip">${r.fields.Name}</span>`;
+                });
                 suggestionHTML += `</div>`;
             } else {
                 let missingMB = targetMB - accumulatedMB;
                 let missingStr = missingMB >= 1048576 ? `${(missingMB / 1048576).toFixed(2)} TB` : `${(missingMB / 1024).toFixed(0)} GB`;
-                suggestionHTML += `<p class="alloc-error">⚠️ <strong>SPEICHER-ENGPASS:</strong> Selbst kombiniert reicht der Platz nicht aus! Fehlend: <strong>${missingStr}</strong>.</p>`;
+                suggestionHTML += `<p class="alloc-error">⚠️ Speichermangel! Dir fehlen noch knapp <strong>${missingStr}</strong>.</p>`;
             }
         }
 
@@ -165,6 +175,7 @@ function renderManagerList(isInitialLoad = false) {
         const ordnerText = (f.Ordner || '').toLowerCase();
         const hasMatchingFolder = searchTerm !== "" && ordnerText.includes(searchTerm);
         const autoOpenAttribute = hasMatchingFolder ? "open" : "";
+
         const isRecommended = recommendedIds.has(record.id) ? "recommended-alloc-row" : "";
 
         const row = document.createElement('div');
@@ -224,7 +235,10 @@ function renderManagerList(isInitialLoad = false) {
                     el.style.transition = 'none';
                     el.style.transform = `translateY(${dy}px)`;
                 }
-            } else { el.style.opacity = '0'; el.style.transform = 'translateY(15px)'; }
+            } else {
+                el.style.opacity = '0';
+                el.style.transform = 'translateY(15px)';
+            }
         });
 
         requestAnimationFrame(() => {
@@ -253,7 +267,9 @@ async function updateCompanyField(recordId, newFirma) {
             },
             body: JSON.stringify({ fields: { "Firma": newFirma } })
         });
-    } catch (error) { console.error(error); }
+    } catch (error) {
+        console.error("Airtable-Hintergrundsync fehlgeschlagen:", error);
+    }
 }
 
 function openScanner() {
@@ -272,12 +288,19 @@ function openScanner() {
         .catch(function(err) {
             navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
                 .then(function(stream) {
-                    cameraStream = stream; video.srcObject = stream; video.play(); requestAnimationFrame(tick);
+                    cameraStream = stream;
+                    video.srcObject = stream;
+                    video.play();
+                    requestAnimationFrame(tick);
                 })
-                .catch(function() { alert("Kamerazugriff verweigert."); closeScanner(); });
+                .catch(function(fallbackErr) {
+                    alert("Kamerazugriff verweigert.");
+                    closeScanner();
+                });
         });
 }
 
+/* STOPPT DIE KAMERA VIA HARDWARE-COMMAND */
 function closeScanner() {
     isScannerActive = false;
     document.getElementById('scanner-overlay').classList.remove('active');
@@ -293,18 +316,23 @@ function closeScanner() {
 
 function tick() {
     if (!isScannerActive) return;
+
     if (video.readyState === video.HAVE_ENOUGH_DATA) {
         canvas.height = video.videoHeight;
         canvas.width = video.videoWidth;
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
+        const code = jsQR(imageData.data, imageData.width, imageData.height, {
+            inversionAttempts: "dontInvert",
+        });
 
         if (code && code.data) {
             const scannedUUID = code.data.trim();
             if (scannedUUID.length > 5) {
                 handleQRDetected(scannedUUID);
-                if (scannedUUID === lastUUID) resetClearTimer();
+                if (scannedUUID === lastUUID) {
+                    resetClearTimer();
+                }
             }
         }
     }
@@ -369,9 +397,9 @@ function resetClearTimer() {
     }, 6000);
 }
 
-// Global Window Bindings für ES6 Modul-Scope
 window.openScanner = openScanner;
 window.closeScanner = closeScanner;
 window.renderManagerList = renderManagerList;
 window.updateCompanyField = updateCompanyField;
 window.generateLabelPNG = generateLabelPNG;
+window.toggleFeatureHub = toggleFeatureHub; // Dem Window-Scope übergeben für HTML-Zugriff
