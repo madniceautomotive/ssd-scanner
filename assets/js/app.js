@@ -114,19 +114,17 @@ async function fetchDatabase() {
     }
 }
 
-/* HIGH-PERFORMANCE FLIP ENGINE: Filtert, sortiert und berechnet Speicherallokationen */
+/* HIGH-PERFORMANCE FLIP ENGINE */
 function renderManagerList(isInitialLoad = false) {
     const content = document.getElementById('manager-content');
     const sortBy = document.getElementById('db-sort').value;
     const searchTerm = document.getElementById('db-search').value.toLowerCase().trim();
 
-    // SICHTBARKEITS-SCHALTUNG FÜR DAS LÖSCHKREUZ
     const clearBtn = document.getElementById('search-clear-btn');
     if (clearBtn) {
         clearBtn.style.display = searchTerm !== "" ? "flex" : "none";
     }
 
-    // FLIP - PHASE 1: FIRST
     const firstPositions = {};
     if (!isInitialLoad) {
         content.querySelectorAll('[data-flip-id]').forEach(el => {
@@ -135,7 +133,6 @@ function renderManagerList(isInitialLoad = false) {
         });
     }
 
-    // Filter-Logik für die Suche
     let processedRecords = databaseRecords.filter(record => {
         const f = record.fields;
         return (f.Name || '').toLowerCase().includes(searchTerm) ||
@@ -164,7 +161,6 @@ function renderManagerList(isInitialLoad = false) {
 
     content.innerHTML = '';
 
-    // SPEICHER-ALLOKATIONS-RECHNER
     const allocVal = parseFloat(document.getElementById('db-alloc-val').value);
     const allocUnit = document.getElementById('db-alloc-unit').value;
     let targetMB = 0;
@@ -263,7 +259,7 @@ function renderManagerList(isInitialLoad = false) {
             }, index * 35);
         }
 
-        // REPARIERT: Injektion mit style="width:0%" und data-target-width für den Layout Flush
+        // REPARIERT: Nutzt data-target-width zur GPU-Verarbeitung
         row.innerHTML = `
             <div class="ssd-row-header">
                 <div class="ssd-info-block">
@@ -273,7 +269,7 @@ function renderManagerList(isInitialLoad = false) {
                     </div>
                     <div class="ssd-row-meta">Speicher: ${cleanStorageUnits(f.Speicher)}</div>
                     <div class="storage-bar-container">
-                        <div class="storage-bar list-storage-bar" style="width: 0%; background-color: ${barColor};" data-target-width="${storageInfo.percentUsed}%"></div>
+                        <div class="storage-bar list-storage-bar" style="background-color: ${barColor};" data-target-width="${storageInfo.percentUsed}%"></div>
                     </div>
                 </div>
                 <div class="action-group">
@@ -298,13 +294,13 @@ function renderManagerList(isInitialLoad = false) {
         content.appendChild(row);
     });
 
-    // REPARIERT: "Forced Reflow" bricht das DOM-Batching auf und zwingt die Listenbalken zur Animation!
+    // REPARIERT: "Forced Reflow" bricht das DOM-Batching auf und animiert die Listenbalken fehlerfrei
     content.querySelectorAll('.list-storage-bar').forEach(bar => {
-        bar.offsetWidth; // Layout Flush erzwingen
+        bar.style.width = '0%';
+        bar.offsetWidth; // Layout Flush
         bar.style.width = bar.getAttribute('data-target-width');
     });
 
-    // FLIP - PHASE 2, 3 & 4: PLAY
     if (!isInitialLoad) {
         content.querySelectorAll('[data-flip-id]').forEach(el => {
             const id = el.getAttribute('data-flip-id');
@@ -498,13 +494,16 @@ async function handleQRDetected(uuid) {
             updateEl.innerText = "Zuletzt aktualisiert: " + (fields.Updates || "-");
             card.style.borderColor = brandColor;
 
-            // REPARIERT: "Forced Reflow" zwingt den Scanner-Balken zur perfekten CSS-Breitenanimation bei jedem Scan
+            // REPARIERT: Der Stagger-Effekt! Verhindert das Ruckeln auf Smartphones, indem er wartet, bis die Karte oben steht.
             if (arStorageBar) {
                 arStorageBar.style.backgroundColor = barColor;
                 arStorageBar.style.width = '0%';
-                arStorageBar.offsetWidth; // Layout Flush erzwingen!
-                arStorageBar.style.transition = 'width 0.65s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s';
-                arStorageBar.style.width = `${storageInfo.percentUsed}%`;
+                arStorageBar.offsetWidth; // Layout Flush im Nullzustand erzwingen
+
+                setTimeout(() => {
+                    arStorageBar.style.transition = 'width 0.7s cubic-bezier(0.16, 1, 0.3, 1)';
+                    arStorageBar.style.width = `${storageInfo.percentUsed}%`;
+                }, 250); // 250ms Pause trennt die Karten-Animation geometrisch von der Balken-Animation!
             }
         } else {
             nameEl.innerText = "Unbekannte SSD";

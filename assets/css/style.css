@@ -152,14 +152,20 @@ body, html {
 .ssd-row-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 5px; color: white; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .ssd-row-meta { font-size: 0.88rem; color: #a0aec0; }
 
-/* REPARIERT: Zurückgestellt auf ultra-stabile Breiten-Transition */
+/* ==================================================== */
+/* HIGH-PERFORMANCE GPU STORAGE BARS                   */
+/* ==================================================== */
 .storage-bar-container {
     width: 100%; height: 6px; background: rgba(255, 255, 255, 0.08);
     border-radius: 3px; margin-top: 8px; overflow: hidden;
 }
+/* TUNING: scaleX läuft direkt über den Compositor-Thread der Grafikkarte */
 .storage-bar {
-    height: 100%; width: 0%; /* Startet bei 0% */
-    transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s;
+    height: 100%; width: 100%;
+    transform-origin: left;
+    transform: scaleX(0); /* Startet bei 0 */
+    will-change: transform; /* Hardware-Zuweisung vorab erzwingen */
+    transition: transform 0.65s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s;
 }
 
 .action-group { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
@@ -222,7 +228,16 @@ body, html {
 .scan-region { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); width: 240px; height: 240px; border: 2px dashed rgba(0, 102, 58, 0.8); border-radius: 24px; box-sizing: border-box; }
 .scan-region::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 3px; background: #00663a; box-shadow: 0 0 12px #00663a; animation: scan 2s linear infinite; will-change: transform; }
 @keyframes scan { 0% { transform: translateY(0); } 50% { transform: translateY(237px); } 100% { transform: translateY(0); } }
-.ar-card { position: absolute; bottom: 30px; left: 50%; transform: translate(-50%, 120%); width: 92%; max-width: 420px; background: #1a1a1a !important; border: 2px solid #00663a; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.8); border-radius: 16px; padding: 20px; color: white; box-sizing: border-box; pointer-events: auto; z-index: 13; opacity: 0; transition: transform 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.2), opacity 0.3s ease; }
+
+/* TUNING: Die AR-Karte wird vorab auf ein eigenes Hardware-Layer gehoben */
+.ar-card {
+    position: absolute; bottom: 30px; left: 50%; transform: translate(-50%, 120%);
+    width: 92%; max-width: 420px; background: #1a1a1a !important; border: 2px solid #00663a;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.8); border-radius: 16px; padding: 20px; color: white;
+    box-sizing: border-box; pointer-events: auto; z-index: 13; opacity: 0;
+    will-change: transform, opacity;
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+}
 .ar-card.active { transform: translate(-50%, 0); opacity: 1; }
 .update-time { font-size: 0.72rem; color: #a0aec0; text-align: right; margin-top: 22px; border-top: 1px dashed rgba(255, 255, 255, 0.08); padding-top: 10px; }
 
@@ -259,7 +274,7 @@ body, html {
 .ssd-row.gecko-brand.recommended-alloc-row { background: rgba(41, 171, 226, 0.04); box-shadow: 0 0 15px rgba(41, 171, 226, 0.15) !important; }
 .gecko-brand .alloc-row-badge { background: #29ABE2; color: #121212; }
 
-/* REPARIERT: Tippfehler @title auf @keyframes behoben */
+/* FIX: @title zu @keyframes korrigiert */
 @keyframes neonPulse {
     0% { box-shadow: 0 0 4px rgba(255,255,255,0.1); }
     50% { box-shadow: 0 0 16px var(--glow-color); }
