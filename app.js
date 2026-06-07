@@ -28,10 +28,10 @@ const cameraConstraints = {
 };
 
 // ====================================================
-// GLOBAL HELPERS (Zuerst definiert für absolute Sicherheit)
+// GLOBAL HELPERS
 // ====================================================
 
-/* Hilfsfunktion: Berechnet Speicher-Prozentwerte und extrahiert MB für die Sortierung */
+/* Hilfsfunktion: Berechnet Speicher-Prozentwerte */
 function parseStorageData(speicherStr) {
     const result = { percentUsed: 0, freeMB: 0 };
     if (!speicherStr) return result;
@@ -62,7 +62,7 @@ function parseStorageData(speicherStr) {
     return result;
 }
 
-/* Ordner-Parser: Erstellt eine saubere UI-Struktur mit Icons statt reinem Code-Text */
+/* Ordner-Parser: Erstellt saubere UI-Chips inklusive zeitlich kaskadierender Einblende-Animation */
 function generateFolderHTML(ordnerStr, company) {
     if (!ordnerStr || ordnerStr.trim() === "" || ordnerStr.includes("(Leer)")) {
         return '<div class="no-folders">Keine Ordner vorhanden</div>';
@@ -73,8 +73,9 @@ function generateFolderHTML(ordnerStr, company) {
     
     const iconColor = company === "Gecko" ? "#29ABE2" : "#00663a";
     
-    return folderArray.map(folder => `
-        <div class="folder-item">
+    // Injiziert inline ein mathematisch gesteigertes animation-delay pro Ordner-Chip
+    return folderArray.map((folder, index) => `
+        <div class="folder-item" style="animation-delay: ${index * 0.04}s;">
             <svg class="folder-icon" style="fill: ${iconColor};" viewBox="0 0 24 24">
                 <path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
             </svg>
@@ -87,7 +88,6 @@ function generateFolderHTML(ordnerStr, company) {
 // CORE WORKFLOW & LIFE-CYCLE
 // ====================================================
 
-// AUTOMATISCHER START: Beim Laden der Seite sofort die operationalen Daten abrufen
 document.addEventListener("DOMContentLoaded", () => {
     fetchDatabase();
 });
@@ -149,7 +149,8 @@ function renderManagerList() {
 
     let lastCompanySeen = null;
 
-    processedRecords.forEach(record => {
+    // Nutzt den Loop-Index, um jeder Zeile ein gestaffeltes Einblende-Delay mitzugeben
+    processedRecords.forEach((record, index) => {
         const f = record.fields;
         if (!f.UUID || !f.Name) return;
 
@@ -172,6 +173,9 @@ function renderManagerList() {
 
         const row = document.createElement('div');
         row.className = `ssd-row ${brandClass}`;
+        // Der magische Stagger-Effekt für CSS
+        row.style.animationDelay = `${index * 0.04}s`;
+        
         row.innerHTML = `
             <div class="ssd-row-header">
                 <div class="ssd-info-block">
@@ -225,9 +229,10 @@ async function updateCompanyField(recordId, newFirma) {
     }
 }
 
-/* STARTET DIE KAMERA */
+/* STARTET DIE KAMERA UND AKTIVIERT DIE TRANSITION */
 function openScanner() {
-    document.getElementById('scanner-overlay').style.display = 'block';
+    const overlay = document.getElementById('scanner-overlay');
+    overlay.classList.add('active'); // Startet den weichen CSS-Vollbild-Fade
     isScannerActive = true;
     lastUUID = "";
 
@@ -254,11 +259,11 @@ function openScanner() {
         });
 }
 
-/* STOPPT DIE KAMERA VIA HARDWARE-COMMAND */
+/* STOPPT DIE KAMERA VIA HARDWARE-COMMAND UND SCHLIEẞT DAS OVERLAY */
 function closeScanner() {
     isScannerActive = false;
-    document.getElementById('scanner-overlay').style.display = 'none';
-    document.getElementById('ar-card').style.display = 'none';
+    document.getElementById('scanner-overlay').classList.remove('active');
+    document.getElementById('ar-card').classList.remove('active');
 
     if (cameraStream) {
         cameraStream.getTracks().forEach(track => track.stop());
@@ -306,7 +311,7 @@ async function handleQRDetected(uuid) {
     const ordnerEl = document.getElementById('ssd-ordner');
     const updateEl = document.getElementById('ssd-update');
 
-    card.style.display = 'block';
+    card.classList.add('active'); // Schießt das solide UI-Panel von unten hoch!
     card.style.borderColor = '#00663a';
     nameEl.innerText = "Verbinde mit Airtable...";
     speicherEl.innerText = "UUID erkannt: " + uuid.substring(0,8) + "...";
@@ -347,7 +352,7 @@ async function handleQRDetected(uuid) {
 function resetClearTimer() {
     if (clearTimer) clearTimeout(clearTimer);
     clearTimer = setTimeout(() => {
-        document.getElementById('ar-card').style.display = 'none';
+        document.getElementById('ar-card').classList.remove('active'); // Zieht das Panel elastisch ab
         lastUUID = "";
     }, 6000); 
 }

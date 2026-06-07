@@ -19,10 +19,11 @@ body, html {
 .search-input {
     width: 100%; background: #1a1a1a; color: white; border: 1px solid #00663a;
     padding: 9px 12px; border-radius: 8px; box-sizing: border-box;
-    outline: none; font-size: 0.85rem; transition: border-color 0.2s;
+    outline: none; font-size: 0.85rem; transition: border-color 0.2s, box-shadow 0.2s;
 }
 .search-input:focus {
-    border-color: #00663a;
+    border-color: #00ff73;
+    box-shadow: 0 0 10px rgba(0, 102, 58, 0.3);
 }
 .sort-group {
     display: flex; align-items: center; gap: 6px; font-size: 0.85rem; color: #a0aec0;
@@ -33,15 +34,28 @@ body, html {
     padding: 9px 28px 9px 12px; border-radius: 8px; font-weight: bold; outline: none; cursor: pointer; font-size: 0.85rem;
     background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
     background-repeat: no-repeat; background-position: right 8px center; background-size: 16px;
+    transition: transform 0.15s ease, border-color 0.2s;
 }
+.sort-select:active, .logo-select:active {
+    transform: scale(0.97);
+}
+
 .manager-content {
     flex: 1; overflow-y: auto; padding: 20px; padding-bottom: 90px;
 }
+
+/* SMART ANIMATION: Eingebauter Einfliege-Effekt für die Zeilen */
 .ssd-row {
     background: rgba(255, 255, 255, 0.04); border-radius: 12px;
     padding: 16px; margin-bottom: 14px; border-left: 4px solid #00663a;
     display: flex; flex-direction: column; align-items: stretch;
+    opacity: 0; transform: translateY(16px);
+    animation: rowFadeIn 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
+@keyframes rowFadeIn {
+    to { opacity: 1; transform: translateY(0); }
+}
+
 .ssd-row-header {
     display: flex; justify-content: space-between; align-items: center;
     gap: 10px;
@@ -54,7 +68,7 @@ body, html {
     border-radius: 3px; margin-top: 8px; overflow: hidden;
 }
 .storage-bar {
-    height: 100%; width: 0%; transition: width 0.4s ease, background-color 0.4s ease;
+    height: 100%; width: 0%; transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s;
 }
 .action-group {
     display: flex; align-items: center; gap: 8px;
@@ -63,8 +77,10 @@ body, html {
     background: #00663a; border: none; color: white;
     padding: 10px 14px; border-radius: 8px; font-weight: bold;
     cursor: pointer; display: flex; align-items: center; gap: 6px;
-    transition: background 0.2s; font-size: 0.85rem;
+    font-size: 0.85rem; transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 0.2s;
 }
+.print-btn:active { transform: scale(0.92); }
+
 .ssd-details {
     margin-top: 12px; padding-top: 10px;
     border-top: 1px solid rgba(0, 102, 58, 0.2);
@@ -72,18 +88,17 @@ body, html {
 .ssd-details summary {
     color: #a0aec0; font-size: 0.85rem; cursor: pointer;
     outline: none; user-select: none; list-style: none;
-    display: flex; align-items: center; gap: 6px;
+    display: flex; align-items: center; gap: 6px; transition: color 0.2s;
 }
+.ssd-details summary:hover { color: white; }
 .ssd-details summary::-webkit-details-marker { display: none; }
 .ssd-details summary::before {
     content: '▶'; display: inline-block; font-size: 0.7rem;
-    transition: transform 0.2s ease; color: #00663a;
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1); color: #00663a;
 }
 .ssd-details[open] summary::before { transform: rotate(90deg); }
 
-/* ==================================================== */
-/* NEW: EDLES GRAFISCHES ORDNER-LISTING                 */
-/* ==================================================== */
+/* MODERNES GRAPHICAL-LISTING */
 .folder-list, .ssd-folders-preview {
     background: rgba(0, 0, 0, 0.2); border-radius: 8px;
     padding: 10px; margin-top: 8px; max-height: 180px; overflow-y: auto;
@@ -91,90 +106,105 @@ body, html {
     border-left: 3px solid #00663a; box-sizing: border-box;
 }
 
-/* Einzelne Ordner-Zeile (Kein Codeblock-Look mehr!) */
+/* SMART ANIMATION: Einzelne Ordner fliegen kaskadierend von links ein */
 .folder-item {
     display: flex; align-items: center; gap: 10px;
     padding: 8px 12px; background: rgba(255, 255, 255, 0.03);
     border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.04);
+    opacity: 0; transform: translateX(-12px);
+    animation: folderChipIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
-.folder-icon {
-    width: 16px; height: 16px; flex-shrink: 0;
+@keyframes folderChipIn {
+    to { opacity: 1; transform: translateX(0); }
 }
-.folder-name {
-    font-size: 0.85rem; color: #e2e8f0; font-weight: 500;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.no-folders {
-    font-size: 0.82rem; color: #718096; font-style: italic; padding: 4px;
-}
+.folder-icon { width: 16px; height: 16px; flex-shrink: 0; }
+.folder-name { font-size: 0.85rem; color: #e2e8f0; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.no-folders { font-size: 0.82rem; color: #718096; font-style: italic; padding: 4px; }
 
-/* Kamera-Scanner-FAB */
+/* Taktiler FAB Button */
 .fab-camera-trigger {
     position: absolute; bottom: 30px; right: 30px; z-index: 5;
     width: 60px; height: 60px; background: #00663a;
     border: 2px solid #ffffff; border-radius: 50%;
-    box-shadow: 0 0 20px rgba(0, 102, 58, 0.6);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
     display: flex; align-items: center; justify-content: center;
-    cursor: pointer; pointer-events: auto; transition: all 0.2s ease;
+    cursor: pointer; pointer-events: auto; 
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s;
 }
+.fab-camera-trigger:hover { transform: scale(1.08); box-shadow: 0 0 25px rgba(0, 102, 58, 0.6); }
 .fab-camera-trigger:active { transform: scale(0.9); }
 .fab-camera-trigger svg { width: 28px; height: 28px; fill: #ffffff; }
 
+/* ==================================================== */
+/* OVERLAY ANSICHT: INTELLIGENTER SCANNER FLUID-LOOK    */
+/* ==================================================== */
 #scanner-overlay {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background-color: #000000; z-index: 10; display: none;
+    background-color: #000000; z-index: 10; 
+    opacity: 0; visibility: hidden;
+    transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.35s;
 }
-#video {
-    width: 100%; height: 100%; object-fit: cover;
-    position: absolute; top: 0; left: 0; z-index: 11;
-}
-.scan-container {
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    z-index: 12; pointer-events: none;
-}
-.scan-region {
-    position: absolute; top: 40%; left: 50%;
-    transform: translate(-50%, -50%);
-    width: 240px; height: 240px;
-    border: 2px dashed rgba(0, 102, 58, 0.8);
-    border-radius: 24px;
-    box-sizing: border-box;
+#scanner-overlay.active {
+    opacity: 1; visibility: visible;
 }
 
-/* REPARIERT: Scanner-Balken nutzt jetzt das dunkle, gewohnte MNAU-Grün */
+#video { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; z-index: 11; }
+.scan-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 12; pointer-events: none; }
+.scan-region {
+    position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%);
+    width: 240px; height: 240px; border: 2px dashed rgba(0, 102, 58, 0.8); border-radius: 24px; box-sizing: border-box;
+}
 .scan-region::before {
     content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 3px;
-    background: #00663a; box-shadow: 0 0 12px #00663a;
-    animation: scan 2s linear infinite;
-    will-change: transform;
+    background: #00663a; box-shadow: 0 0 12px #00663a; animation: scan 2s linear infinite; will-change: transform;
 }
 @keyframes scan {
     0% { transform: translateY(0); }
     50% { transform: translateY(237px); }
     100% { transform: translateY(0); }
 }
+
+/* REPARIERT: Massiver, 100% blickdichter Hintergrund & Smart Elastic Slide-Up */
+.ar-card {
+    position: absolute; bottom: 30px; left: 50%;
+    transform: translate(-50%, 120%); /* Startet versteckt weit unter dem Bildschirm */
+    width: 92%; max-width: 420px;
+    background: #1a1a1a !important; /* Absolut Blickdicht, kein Durchscheinen! */
+    border: 2px solid #00663a;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.8);
+    border-radius: 16px; padding: 20px; color: white;
+    box-sizing: border-box; pointer-events: auto; z-index: 13;
+    opacity: 0;
+    transition: transform 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.2), opacity 0.3s ease;
+}
+/* Aktiv-Zustand für die AR-Card */
+.ar-card.active {
+    transform: translate(-50%, 0); /* Federt elegant nach oben ein */
+    opacity: 1;
+}
+
 .close-scanner-btn {
     position: absolute; top: 24px; right: 20px; z-index: 15;
     background: #e74c3c; border: 2px solid #ffffff; color: white;
     padding: 10px 18px; border-radius: 8px; cursor: pointer; font-weight: bold;
     font-size: 0.85rem; box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-    transition: background 0.2s;
+    transition: transform 0.15s ease, background-color 0.2s;
 }
-.close-scanner-btn:active { transform: scale(0.95); }
+.close-scanner-btn:active { transform: scale(0.93); }
+
 #loading-overlay {
     position: absolute; top: 0; left: 0; width: 100%; height: 100%;
     background: #121212; z-index: 100; display: flex;
-    flex-direction: column; align-items: center; justify-content: center;
-    color: #ffffff; font-size: 1.2rem;
+    flex-direction: column; align-items: center; justify-content: center; color: #ffffff; font-size: 1.2rem;
 }
 .spinner {
-    width: 40px; height: 40px; border: 4px solid rgba(0, 102, 58, 0.2);
-    border-top-color: #00663a; border-radius: 50%;
-    animation: spin 1s linear infinite; margin-bottom: 20px;
+    width: 40px; height: 40px; border: 4px solid rgba(0, 102, 58, 0.2); border-top-color: #00663a; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* BRAND OVERRIDES FOR GECKO */
+/* ==================================================== */
+/* BRAND OVERRIDES FOR GECKO (HIGHLIGHTING #29ABE2)      */
+/* ==================================================== */
 .ssd-row.gecko-brand { border-left-color: #29ABE2; }
 .ssd-row.gecko-brand .logo-select { border-color: #29ABE2; }
 .ssd-row.gecko-brand .print-btn { background: #29ABE2; color: #121212; }
@@ -182,20 +212,14 @@ body, html {
 .ssd-row.gecko-brand .ssd-details summary::before { color: #29ABE2; }
 .ssd-row.gecko-brand .ssd-folders-preview { border-left-color: #29ABE2; }
 
-/* ==================================================== */
-/* BRAND OVERRIDES FÜR REINHALTUNG DER CORES            */
-/* ==================================================== */
+/* GROUP-DIVIDER */
 .section-divider {
     display: flex; align-items: center; margin: 30px 0 16px 0;
-    font-size: 0.72rem; font-weight: 800; letter-spacing: 2px;
-    text-transform: uppercase; user-select: none;
+    font-size: 0.72rem; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; user-select: none;
 }
 .section-divider::before { content: '// '; margin-right: 6px; font-weight: 900; }
 .section-divider::after { content: ''; flex: 1; height: 1px; margin-left: 14px; }
-
-/* REPARIERT: MNAU-Divider nutzt jetzt das feste #00663a */
 .section-divider.mnau-divider { color: #00663a; }
 .section-divider.mnau-divider::after { background: linear-gradient(to right, rgba(0, 102, 58, 0.8), transparent); }
-
 .section-divider.gecko-divider { color: #29ABE2; }
 .section-divider.gecko-divider::after { background: linear-gradient(to right, rgba(41, 171, 226, 0.8), transparent); }
