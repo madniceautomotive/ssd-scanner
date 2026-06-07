@@ -13,8 +13,19 @@ const baseId = "appXKM0UQ8uJLuiNB";
 const tableName = "SSDs";
 // ----------------------------------------------------
 
-// Kamera-Feed initialisieren
-navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+// OPTIMIERTE KAMERA-ZWÄNGE: Full HD erzwingen für maximale Schärfe aus der Distanz
+const cameraConstraints = {
+    video: {
+        facingMode: "environment",
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+        frameRate: { ideal: 30 }
+    },
+    audio: false // Spart Performance und Berechtigungs-Abfragen
+};
+
+// Kamera-Feed mit optimierten Einstellungen initialisieren
+navigator.mediaDevices.getUserMedia(cameraConstraints)
     .then(function(stream) {
         video.srcObject = stream;
         video.setAttribute("playsinline", true);
@@ -23,8 +34,19 @@ navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
         requestAnimationFrame(tick);
     })
     .catch(function(err) {
-        document.getElementById('loading-overlay').innerText = "Kamerazugriff verweigert oder nicht unterstützt.";
-        console.error(err);
+        // Fallback, falls Full HD vom Gerät absolut nicht unterstützt wird
+        console.warn("Full HD nicht unterstützt, starte Standard-Kamera...", err);
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+            .then(function(stream) {
+                video.srcObject = stream;
+                video.play();
+                document.getElementById('loading-overlay').style.display = 'none';
+                requestAnimationFrame(tick);
+            })
+            .catch(function(fallbackErr) {
+                document.getElementById('loading-overlay').innerText = "Kamerazugriff verweigert oder nicht unterstützt.";
+                console.error(fallbackErr);
+            });
     });
 
 // QR-Code Live-Scan-Schleife
@@ -155,7 +177,6 @@ async function openManager() {
         
         databaseRecords = data.records || [];
         
-        // Suchfeld beim Öffnen zurücksetzen
         if (document.getElementById('db-search')) {
             document.getElementById('db-search').value = '';
         }
@@ -180,7 +201,6 @@ function renderManagerList() {
         return;
     }
 
-    // 1. FILTERN nach Suchbegriff (Name, Speicherinfo oder Ordnerinhalt)
     let processedRecords = databaseRecords.filter(record => {
         const f = record.fields;
         const name = (f.Name || '').toLowerCase();
@@ -194,7 +214,6 @@ function renderManagerList() {
         return;
     }
 
-    // 2. SORTIEREN der gefilterten Ergebnisse
     if (sortBy === 'name') {
         processedRecords.sort((a, b) => (a.fields.Name || '').localeCompare(b.fields.Name || ''));
     } else if (sortBy === 'storage') {
@@ -205,7 +224,6 @@ function renderManagerList() {
         });
     }
 
-    // 3. HTML GENERIEREN UND AUSGEBEN
     processedRecords.forEach(record => {
         const f = record.fields;
         if (!f.UUID || !f.Name) return;
@@ -252,6 +270,7 @@ function renderManagerList() {
 }
 
 function closeManager() {
+    document.getElementById('manager-overlay').style.none = 'none';
     document.getElementById('manager-overlay').style.display = 'none';
 }
 
