@@ -8,7 +8,7 @@ const ctx = canvas.getContext('2d');
 let lastUUID = "";
 let isFetching = false;
 let clearTimer = null;
-let databaseRecords = [];
+let databaseRecords = []; // Lokaler Zwischenspeicher für Sortierung/Suche
 
 let cameraStream = null;
 let isScannerActive = false;
@@ -110,7 +110,7 @@ function renderManagerList(isInitialLoad = false) {
         clearBtn.style.display = searchTerm !== "" ? "flex" : "none";
     }
 
-    // FLIP - PHASE 1: FIRST
+    // FLIP - PHASE 1: FIRST (Alte Positionen für flüssiges Nachrücken erfassen)
     const firstPositions = {};
     if (!isInitialLoad) {
         content.querySelectorAll('[data-flip-id]').forEach(el => {
@@ -163,7 +163,6 @@ function renderManagerList(isInitialLoad = false) {
         if (singleFits.length > 0) {
             suggestionHTML += `<p>➔ Folgende SSDs bieten <span class="alloc-highlight-green">einzeln</span> genügend freien Speicherplatz:</p><div class="alloc-chip-container">`;
             singleFits.forEach(r => {
-                // REPARIERT: Dynamische Brand-Klasse für den Chip generieren
                 const chipBrandClass = (r.fields.Firma || 'MNAU').toLowerCase() + '-alloc-chip';
                 suggestionHTML += `<span class="alloc-target-chip ${chipBrandClass}">${r.fields.Name}</span>`;
                 recommendedIds.add(r.id);
@@ -187,7 +186,6 @@ function renderManagerList(isInitialLoad = false) {
             if (accumulatedMB >= targetMB) {
                 suggestionHTML += `<p>➔ Keine einzelne SSD groß genug. Daten <span class="alloc-highlight-blue">aufteilen empfohlen</span> auf folgende Units:</p><div class="alloc-chip-container">`;
                 comboSelected.forEach(r => {
-                    // REPARIERT: Dynamische Brand-Klasse für den Kombi-Chip generieren
                     const chipBrandClass = (r.fields.Firma || 'MNAU').toLowerCase() + '-alloc-chip';
                     suggestionHTML += `<span class="alloc-target-chip ${chipBrandClass}">${r.fields.Name}</span>`;
                 });
@@ -249,6 +247,7 @@ function renderManagerList(isInitialLoad = false) {
             }, index * 35);
         }
 
+        // UPGRADE: .delete-btn im action-group Block injiziert
         row.innerHTML = `
             <div class="ssd-row-header">
                 <div class="ssd-info-block">
@@ -270,6 +269,9 @@ function renderManagerList(isInitialLoad = false) {
                         <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"/></svg>
                         Label
                     </button>
+                    <button class="delete-btn" onclick="deleteSSD('${record.id}', '${f.Name}')" title="SSD aus Database löschen">
+                        <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                    </button>
                 </div>
             </div>
             <details class="ssd-details" ${autoOpenAttribute}>
@@ -280,7 +282,7 @@ function renderManagerList(isInitialLoad = false) {
         content.appendChild(row);
     });
 
-    // FLIP - PHASE 2, 3 & 4: PLAY
+    // FLIP - PHASE 2, 3 & 4: PLAY (Die restlichen Zeilen gleiten magisch nach oben!)
     if (!isInitialLoad) {
         content.querySelectorAll('[data-flip-id]').forEach(el => {
             const id = el.getAttribute('data-flip-id');
@@ -310,6 +312,7 @@ function renderManagerList(isInitialLoad = false) {
     }
 }
 
+/* LIVE-UPDATE AN DATABASE */
 async function updateCompanyField(recordId, newFirma) {
     const localRecord = databaseRecords.find(r => r.id === recordId);
     if (localRecord) localRecord.fields.Firma = newFirma;
@@ -326,6 +329,32 @@ async function updateCompanyField(recordId, newFirma) {
         });
     } catch (error) {
         console.error("Database-Hintergrundsync fehlgeschlagen:", error);
+    }
+}
+
+/* NEU: Kritische Sicherheits-Löschfunktion mit UI-Bestätigung und FLIP-Ausgleich */
+async function deleteSSD(recordId, ssdName) {
+    // Zweistufiger Sicherheitsgurt gegen unabsichtliches Klicken am Set
+    const securityCheck = confirm(`🛑 KRITISCHER VORGANG:\nMöchtest du die SSD "${ssdName}" wirklich unwiderruflich aus der Database löschen?\n\nDieser Vorgang kann NICHT rückgängig gemacht werden!`);
+    if (!securityCheck) return;
+
+    // 1. Lokalen RAM-Cache sofort säubern
+    databaseRecords = databaseRecords.filter(record => record.id !== recordId);
+
+    // 2. FLIP-Engine sofort triggern -> Elemente gleiten nahtlos zusammen
+    renderManagerList(false);
+
+    // 3. Im Hintergrund lautlos und ohne Ruckler die Cloud-Datenbank rasieren
+    try {
+        await fetch(`https://api.airtable.com/v0/${baseId}/${tableName}/${recordId}`, {
+            method: "DELETE",
+            headers: {
+                "Authorization": `Bearer ${airtableToken}`
+            }
+        });
+    } catch (error) {
+        console.error("REST-API Deletion Error:", error);
+        alert("Fehler beim Synchronisieren des Löschvorgangs. Bitte lade das HUD neu.");
     }
 }
 
@@ -453,6 +482,7 @@ function resetClearTimer() {
     }, 6000);
 }
 
+// Global an Window binden
 window.openScanner = openScanner;
 window.closeScanner = closeScanner;
 window.renderManagerList = renderManagerList;
@@ -462,3 +492,4 @@ window.toggleFeatureHub = toggleFeatureHub;
 window.clearSearch = clearSearch;
 window.toggleSortMenu = toggleSortMenu;
 window.setSortMode = setSortMode;
+window.deleteSSD = deleteSSD; // NEU: Löschfunktion für HTML Scope freigeben
