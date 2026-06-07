@@ -25,14 +25,13 @@ body, html {
     -webkit-background-clip: text; -webkit-text-fill-color: transparent;
 }
 
-/* Der Kontroll-Balken: Bleibt nun immer ein horizontales Grid */
 .header-controls-row {
     display: flex; width: 100%; gap: 10px; align-items: center;
 }
-.search-group {
-    position: relative; flex: 1; /* Nimmt dynamisch den gesamten freien Raum ein */
-}
 
+.search-group {
+    position: relative; flex: 1;
+}
 .search-input {
     width: 100%; background: #1c1c1c; color: white; border: 1px solid rgba(0, 102, 58, 0.5);
     padding: 11px 42px 11px 14px; border-radius: 10px; box-sizing: border-box;
@@ -55,7 +54,7 @@ body, html {
 .search-clear-btn:hover svg { fill: #e74c3c; }
 
 /* ==================================================== */
-/* NEW: ARCHITECTURE FÜR CUSTOM ICON SORT DROPDOWN     */
+/* CUSTOM ICON SORT DROPDOWN                            */
 /* ==================================================== */
 .sort-dropdown-container {
     position: relative; display: inline-block; flex-shrink: 0;
@@ -70,7 +69,6 @@ body, html {
 .sort-icon-btn:active { transform: scale(0.93); }
 .sort-icon-btn svg { width: 18px; height: 18px; fill: currentColor; }
 
-/* Das schwebende Dropdown-Menü */
 .sort-dropdown-menu {
     position: absolute; top: 50px; right: 0; background: #1a1a1a;
     border: 1px solid #00663a; border-radius: 8px;
@@ -91,8 +89,25 @@ body, html {
 }
 
 /* ==================================================== */
-/* FEATURE HUB CONFIG                                   */
+/* BASE DROP-DOWN STYLING (REPARIERT)                   */
 /* ==================================================== */
+.sort-select, .logo-select {
+    -webkit-appearance: none; -moz-appearance: none; appearance: none;
+    background: #1c1c1c; color: white; border: 1px solid rgba(0, 102, 58, 0.5);
+    padding: 10px 32px 10px 14px; border-radius: 10px; font-weight: 600; outline: none; cursor: pointer; font-size: 0.88rem;
+    background-repeat: no-repeat; background-position: right 12px center; background-size: 16px;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+    transition: transform 0.15s ease, border-color 0.2s, width 0.2s;
+}
+
+/* FIX: Verhindert, dass das Firmen-Dropdown auf Desktop unendlich breit wird */
+.logo-select {
+    width: 105px; /* Perfekte, kompakte Breite für MNAU / GECKO Schaltung */
+}
+
+.sort-select:active, .logo-select:active { transform: scale(0.98); }
+
+/* FEATURE HUB CONFIG */
 .feature-toggle-btn {
     background: #1c1c1c; border: 1px solid rgba(0, 102, 58, 0.5); color: #a0aec0;
     padding: 8px 14px; border-radius: 8px; font-size: 0.82rem; font-weight: 700;
@@ -164,11 +179,13 @@ body, html {
 .ssd-row.recommended-alloc-row { background: rgba(0, 102, 58, 0.06); box-shadow: 0 0 15px rgba(0, 102, 58, 0.15) !important; }
 .ssd-row.gecko-brand.recommended-alloc-row { background: rgba(41, 171, 226, 0.04); box-shadow: 0 0 15px rgba(41, 171, 226, 0.15) !important; }
 
-/* REPARIERT: .header-controls-row wurde aus dem Media-Query entfernt, um Nebeneinander-Verhalten zu sichern! */
+/* RESPONSIVE DESIGN */
 @media (max-width: 580px) {
     .ssd-row-header { flex-direction: column; align-items: stretch; gap: 14px; }
     .action-group { justify-content: space-between; width: 100%; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 12px; }
-    .action-group .logo-select { flex: 1; }
+
+    /* FIX: Im Mobile-Modus darf sich das Dropdown wieder frei dehnen */
+    .action-group .logo-select { flex: 1; width: 100%; }
 }
 
 /* Akkordeons & Ordner */
@@ -186,12 +203,8 @@ body, html {
 .folder-name { font-size: 0.85rem; color: #e2e8f0; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .no-folders { font-size: 0.82rem; color: #718096; font-style: italic; padding: 4px; }
 
-.sort-select {
-    display: none !important; /* Wird im Header durch Custom Dropdown ersetzt, bleibt nur im Feature-Hub */
-}
-.alloc-unit {
-    display: block !important;
-}
+.sort-select { display: none !important; }
+.alloc-unit { display: block !important; }
 
 @keyframes neonPulse { 0% { box-shadow: 0 0 4px rgba(255,255,255,0.1); } 50% { box-shadow: 0 0 16px var(--glow-color); } 100% { box-shadow: 0 0 4px rgba(255,255,255,0.1); } }
 .folder-item.highlighted-folder { animation: folderChipIn 0.3s ease forwards, neonPulse 1.8s infinite ease-in-out !important; }
@@ -218,6 +231,7 @@ body, html {
 .ar-card.active { transform: translate(-50%, 0); opacity: 1; }
 .update-time { font-size: 0.72rem; color: #a0aec0; text-align: right; margin-top: 22px; border-top: 1px dashed rgba(255, 255, 255, 0.08); padding-top: 10px; }
 
+/* CIRCULAR CROSS BUTTON */
 .close-scanner-btn {
     position: absolute; top: 24px; right: 24px; z-index: 15;
     background: rgba(20, 20, 20, 0.8); border: 1px solid rgba(0, 255, 115, 0.4);
