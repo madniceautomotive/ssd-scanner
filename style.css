@@ -19,16 +19,22 @@ body, html {
     border-radius: 24px;
     box-sizing: border-box;
 }
+
+/* SMARTES UPGRADE: will-change aktiviert die GPU-Beschleunigung */
 .scan-region::before {
     content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 3px;
     background: #00ff73; box-shadow: 0 0 12px #00ff73;
     animation: scan 2s linear infinite;
+    will-change: transform; 
 }
+
+/* SMARTES UPGRADE: transform läuft direkt auf dem Grafikchip ohne Ruckeln */
 @keyframes scan {
-    0% { top: 0; }
-    50% { top: 100%; }
-    100% { top: 0; }
+    0% { transform: translateY(0); }
+    50% { transform: translateY(237px); } /* 240px Box-Höhe minus 3px Balken-Dicke */
+    100% { transform: translateY(0); }
 }
+
 .ar-card {
     position: absolute; bottom: 40px; left: 50%;
     transform: translateX(-50%); width: 92%; max-width: 420px;
@@ -99,7 +105,7 @@ body, html {
 }
 .manager-header h1 { margin: 0; font-size: 1.3rem; color: #ffffff; }
 
-/* Styling für das neue Suchfeld */
+/* Styling für das Suchfeld */
 .search-group {
     flex: 1; min-width: 160px; max-width: 280px;
 }
@@ -117,7 +123,7 @@ body, html {
     display: flex; align-items: center; gap: 6px; font-size: 0.85rem; color: #a0aec0;
 }
 
-/* iOS FIX FÜR VERSCHWUNDENE PFEILE: appearance: none + Custom SVG Arrow */
+/* iOS FIX FÜR VERSCHWUNDENE PFEILE */
 .sort-select, .logo-select {
     -webkit-appearance: none; -moz-appearance: none; appearance: none;
     background: #121212; color: white; border: 1px solid #00663a;
