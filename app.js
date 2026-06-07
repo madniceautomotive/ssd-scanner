@@ -78,7 +78,8 @@ async function updateCompanyField(recordId, newFirma) {
             localRecord.fields.Firma = newFirma;
         }
         
-        console.log(`SSD [${recordId}] erfolgreich auf Firma '${newFirma}' umgestellt.`);
+        // Liste nach Änderung direkt neu sortieren und rendern
+        renderManagerList();
     } catch (error) {
         alert("Fehler beim Speichern der Firma in Airtable. Bitte Internetverbindung prüfen!");
         console.error(error);
@@ -257,13 +258,13 @@ function renderManagerList() {
         return;
     }
 
-    // 1. FILTERN nach Suchbegriff (Durchsucht jetzt auch den Firmennamen!)
+    // 1. FILTERN nach Suchbegriff
     let processedRecords = databaseRecords.filter(record => {
         const f = record.fields;
         const name = (f.Name || '').toLowerCase();
         const speicher = (f.Speicher || '').toLowerCase();
         const ordner = (f.Ordner || '').toLowerCase();
-        const firma = (f.Firma || 'MNAU').toLowerCase(); // Nutze MNAU als Such-Fallback bei leeren Zeilen
+        const firma = (f.Firma || 'MNAU').toLowerCase();
         return name.includes(searchTerm) || speicher.includes(searchTerm) || ordner.includes(searchTerm) || firma.includes(searchTerm);
     });
 
@@ -272,11 +273,27 @@ function renderManagerList() {
         return;
     }
 
-    // 2. SORTIEREN der gefilterten Ergebnisse
+    // GEWINNBRINGENDER HELPER: Sortiert Firmen strikt vor (MNAU = -1, Gecko = 1)
+    const companyComparator = (a, b) => {
+        const firmaA = a.fields.Firma || 'MNAU';
+        const firmaB = b.fields.Firma || 'MNAU';
+        if (firmaA === firmaB) return 0;
+        if (firmaA === 'MNAU' && firmaB === 'Gecko') return -1;
+        if (firmaA === 'Gecko' && firmaB === 'MNAU') return 1;
+        return 0;
+    };
+
+    // 2. ERZWUNGENE ZWEISTUFIGE SORTIERUNG (Erst Firma, dann Kriterium)
     if (sortBy === 'name') {
-        processedRecords.sort((a, b) => (a.fields.Name || '').localeCompare(b.fields.Name || ''));
+        processedRecords.sort((a, b) => {
+            const cComp = companyComparator(a, b);
+            if (cComp !== 0) return cComp; // Wenn ungleiche Firmen, entscheidet die Firmen-Prio
+            return (a.fields.Name || '').localeCompare(b.fields.Name || '');
+        });
     } else if (sortBy === 'storage') {
         processedRecords.sort((a, b) => {
+            const cComp = companyComparator(a, b);
+            if (cComp !== 0) return cComp; // Wenn ungleiche Firmen, entscheidet die Firmen-Prio
             const storageA = parseStorageData(a.fields.Speicher);
             const storageB = parseStorageData(b.fields.Speicher);
             return storageB.freeMB - storageA.freeMB;
@@ -289,9 +306,10 @@ function renderManagerList() {
         if (!f.UUID || !f.Name) return;
 
         const cleanFolders = f.Ordner ? f.Ordner.split('\\n').filter(Boolean).join('\n') : '(Keine Ordner vorhanden)';
-        
-        // Intelligenten Firmen-Standardwert festlegen
         const currentFirma = f.Firma || "MNAU";
+
+        // Brand-Klasse für CSS-Anpassungen ermitteln
+        const brandClass = currentFirma === "Gecko" ? "gecko-brand" : "mnau-brand";
 
         const storageInfo = parseStorageData(f.Speicher);
         let barColor = '#2ecc71'; 
@@ -302,7 +320,7 @@ function renderManagerList() {
         }
 
         const row = document.createElement('div');
-        row.className = 'ssd-row';
+        row.className = `ssd-row ${brandClass}`;
         row.innerHTML = `
             <div class="ssd-row-header">
                 <div class="ssd-info-block">
@@ -335,7 +353,6 @@ function renderManagerList() {
 /* HTML5 Off-Screen Canvas Label Generator - MIT SMARTEM WORT-UMBRUCH */
 async function generateLabelPNG(name, uuid) {
     try {
-        // Mappt die Text-Auswahl ("MNAU" / "Gecko") wieder auf die entsprechende SVG-Grafik
         const selectedCompany = document.getElementById(`logo-select-${uuid}`).value;
         const selectedLogoFile = selectedCompany === "Gecko" ? "gecko_logo.svg" : "mnau_logo.svg";
 
