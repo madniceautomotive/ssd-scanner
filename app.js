@@ -27,6 +27,66 @@ const cameraConstraints = {
     audio: false
 };
 
+// ====================================================
+// GLOBAL HELPERS (Zuerst definiert für absolute Sicherheit)
+// ====================================================
+
+/* Hilfsfunktion: Berechnet Speicher-Prozentwerte und extrahiert MB für die Sortierung */
+function parseStorageData(speicherStr) {
+    const result = { percentUsed: 0, freeMB: 0 };
+    if (!speicherStr) return result;
+
+    const matches = speicherStr.match(/([\d.,]+)\s*([a-zA-Z]*)\s+frei\s+von\s+([\d.,]+)\s*([a-zA-Z]*)/);
+    if (!matches) return result;
+
+    const freeVal = parseFloat(matches[1].replace(',', '.'));
+    const freeUnit = matches[2].toLowerCase();
+    const totalVal = parseFloat(matches[3].replace(',', '.'));
+    const totalUnit = matches[4].toLowerCase();
+
+    const toMB = (val, unit) => {
+        if (unit.includes('t')) return val * 1024 * 1024;
+        if (unit.includes('g')) return val * 1024;
+        if (unit.includes('m')) return val;
+        return val;
+    };
+
+    const freeMB = toMB(freeVal, freeUnit);
+    const totalMB = toMB(totalVal, totalUnit);
+    
+    if (totalMB > 0) {
+        const usedMB = totalMB - freeMB;
+        result.percentUsed = Math.max(0, Math.min(100, (usedMB / totalMB) * 100));
+        result.freeMB = freeMB;
+    }
+    return result;
+}
+
+/* Ordner-Parser: Erstellt eine saubere UI-Struktur mit Icons statt reinem Code-Text */
+function generateFolderHTML(ordnerStr, company) {
+    if (!ordnerStr || ordnerStr.trim() === "" || ordnerStr.includes("(Leer)")) {
+        return '<div class="no-folders">Keine Ordner vorhanden</div>';
+    }
+    
+    const folderArray = ordnerStr.split(/\\n|\n/).filter(Boolean);
+    if (folderArray.length === 0) return '<div class="no-folders">Keine Ordner vorhanden</div>';
+    
+    const iconColor = company === "Gecko" ? "#29ABE2" : "#00663a";
+    
+    return folderArray.map(folder => `
+        <div class="folder-item">
+            <svg class="folder-icon" style="fill: ${iconColor};" viewBox="0 0 24 24">
+                <path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
+            </svg>
+            <span class="folder-name">${folder.trim()}</span>
+        </div>
+    `).join('');
+}
+
+// ====================================================
+// CORE WORKFLOW & LIFE-CYCLE
+// ====================================================
+
 // AUTOMATISCHER START: Beim Laden der Seite sofort die operationalen Daten abrufen
 document.addEventListener("DOMContentLoaded", () => {
     fetchDatabase();
@@ -49,27 +109,96 @@ async function fetchDatabase() {
     }
 }
 
-/* INTELLIGENTER ORDNER-PARSER: Erstellt eine saubere UI-Struktur mit Icons statt reinem Code-Text */
-function generateFolderHTML(ordnerStr, company) {
-    if (!ordnerStr || ordnerStr.trim() === "" || ordnerStr.includes("(Leer)")) {
-        return '<div class="no-folders">Keine Ordner vorhanden</div>';
+/* Rendert die Liste basierend auf Sortierung UND Suchbegriff */
+function renderManagerList() {
+    const content = document.getElementById('manager-content');
+    const sortBy = document.getElementById('db-sort').value;
+    const searchTerm = document.getElementById('db-search').value.toLowerCase().trim();
+    content.innerHTML = '';
+
+    if (databaseRecords.length === 0) {
+        content.innerHTML = '<div style="text-align:center; color:#a0aec0; padding:20px;">Keine Daten gefunden.</div>';
+        return;
     }
-    
-    // Splittet den Text flexibel bei echten oder maskierten Zeilenumbrüchen
-    const folderArray = ordnerStr.split(/\\n|\n/).filter(Boolean);
-    if (folderArray.length === 0) return '<div class="no-folders">Keine Ordner vorhanden</div>';
-    
-    // Bestimmt die Icon-Farbe passend zur Firma
-    const iconColor = company === "Gecko" ? "#29ABE2" : "#00663a";
-    
-    return folderArray.map(folder => `
-        <div class="folder-item">
-            <svg class="folder-icon" style="fill: ${iconColor};" viewBox="0 0 24 24">
-                <path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
-            </svg>
-            <span class="folder-name">${folder.trim()}</span>
-        </div>
-    `).join('');
+
+    let processedRecords = databaseRecords.filter(record => {
+        const f = record.fields;
+        return (f.Name || '').toLowerCase().includes(searchTerm) || 
+               (f.Speicher || '').toLowerCase().includes(searchTerm) || 
+               (f.Ordner || '').toLowerCase().includes(searchTerm) || 
+               (f.Firma || 'MNAU').toLowerCase().includes(searchTerm);
+    });
+
+    if (processedRecords.length === 0) {
+        content.innerHTML = '<div style="text-align:center; color:#a0aec0; padding:20px;">Keine SSDs gefunden.</div>';
+        return;
+    }
+
+    const companyComparator = (a, b) => {
+        const firmaA = a.fields.Firma || 'MNAU';
+        const firmaB = b.fields.Firma || 'MNAU';
+        if (firmaA === firmaB) return 0;
+        return (firmaA === 'MNAU' && firmaB === 'Gecko') ? -1 : 1;
+    };
+
+    if (sortBy === 'name') {
+        processedRecords.sort((a, b) => companyComparator(a, b) || (a.fields.Name || '').localeCompare(b.fields.Name || ' '));
+    } else if (sortBy === 'storage') {
+        processedRecords.sort((a, b) => companyComparator(a, b) || parseStorageData(b.fields.Speicher).freeMB - parseStorageData(a.fields.Speicher).freeMB);
+    }
+
+    let lastCompanySeen = null;
+
+    processedRecords.forEach(record => {
+        const f = record.fields;
+        if (!f.UUID || !f.Name) return;
+
+        const currentFirma = f.Firma || "MNAU";
+
+        if (currentFirma !== lastCompanySeen) {
+            const divider = document.createElement('div');
+            divider.className = `section-divider ${currentFirma.toLowerCase()}-divider`;
+            divider.innerHTML = `<span>${currentFirma} STORAGE UNITS</span>`;
+            content.appendChild(divider);
+            lastCompanySeen = currentFirma;
+        }
+
+        const brandClass = currentFirma === "Gecko" ? "gecko-brand" : "mnau-brand";
+        const storageInfo = parseStorageData(f.Speicher);
+        
+        let barColor = '#2ecc71'; 
+        if (storageInfo.percentUsed >= 90) barColor = '#e74c3c'; 
+        else if (storageInfo.percentUsed >= 70) barColor = '#f1c40f'; 
+
+        const row = document.createElement('div');
+        row.className = `ssd-row ${brandClass}`;
+        row.innerHTML = `
+            <div class="ssd-row-header">
+                <div class="ssd-info-block">
+                    <div class="ssd-row-title">${f.Name}</div>
+                    <div class="ssd-row-meta">Speicher: ${f.Speicher || 'Keine Info'}</div>
+                    <div class="storage-bar-container">
+                        <div class="storage-bar" style="width: ${storageInfo.percentUsed}%; background-color: ${barColor};"></div>
+                    </div>
+                </div>
+                <div class="action-group">
+                    <select id="logo-select-${f.UUID}" class="logo-select" onchange="updateCompanyField('${record.id}', this.value)">
+                        <option value="MNAU" ${currentFirma === 'MNAU' ? 'selected' : ''}>MNAU</option>
+                        <option value="Gecko" ${currentFirma === 'Gecko' ? 'selected' : ''}>Gecko</option>
+                    </select>
+                    <button class="print-btn" onclick="generateLabelPNG('${f.Name}', '${f.UUID}')">
+                        <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"/></svg>
+                        PNG
+                    </button>
+                </div>
+            </div>
+            <details class="ssd-details">
+                <summary>Ordnerstruktur einblenden</summary>
+                <div class="ssd-folders-preview">${generateFolderHTML(f.Ordner, currentFirma)}</div>
+            </details>
+        `;
+        content.appendChild(row);
+    });
 }
 
 /* LIVE-UPDATE AN AIRTABLE: Wird getriggert, wenn das Firmen-Dropdown geändert wird */
@@ -197,13 +326,8 @@ async function handleQRDetected(uuid) {
 
             nameEl.innerText = fields.Name || "Unbenannte SSD";
             speicherEl.innerText = fields.Speicher || "Keine Speicherinfo";
-            
-            // Verwendet hier das neue schöne Ordner-Styling live in der AR-Kameraansicht!
             ordnerEl.innerHTML = generateFolderHTML(fields.Ordner, company);
-            
             updateEl.innerText = "Zuletzt aktualisiert: " + (fields.Updates || "-");
-            
-            // Passt die AR-Kartenfarbe dynamisch an den Besitzer an!
             card.style.borderColor = brandColor;
         } else {
             nameEl.innerText = "Unbekannte SSD";
@@ -214,7 +338,7 @@ async function handleQRDetected(uuid) {
     } catch (error) {
         nameEl.innerText = "Verbindungsfehler";
         speicherEl.innerText = "Airtable-Server nicht erreichbar.";
-    } {
+    } finally {
         isFetching = false;
         resetClearTimer();
     }
@@ -226,98 +350,6 @@ function resetClearTimer() {
         document.getElementById('ar-card').style.display = 'none';
         lastUUID = "";
     }, 6000); 
-}
-
-/* Rendert die Liste basierend auf Sortierung UND Suchbegriff */
-function renderManagerList() {
-    const content = document.getElementById('manager-content');
-    const sortBy = document.getElementById('db-sort').value;
-    const searchTerm = document.getElementById('db-search').value.toLowerCase().trim();
-    content.innerHTML = '';
-
-    if (databaseRecords.length === 0) {
-        content.innerHTML = '<div style="text-align:center; color:#a0aec0; padding:20px;">Keine Daten gefunden.</div>';
-        return;
-    }
-
-    let processedRecords = databaseRecords.filter(record => {
-        const f = record.fields;
-        return (f.Name || '').toLowerCase().includes(searchTerm) || 
-               (f.Speicher || '').toLowerCase().includes(searchTerm) || 
-               (f.Ordner || '').toLowerCase().includes(searchTerm) || 
-               (f.Firma || 'MNAU').toLowerCase().includes(searchTerm);
-    });
-
-    if (processedRecords.length === 0) {
-        content.innerHTML = '<div style="text-align:center; color:#a0aec0; padding:20px;">Keine SSDs gefunden.</div>';
-        return;
-    }
-
-    const companyComparator = (a, b) => {
-        const firmaA = a.fields.Firma || 'MNAU';
-        const firmaB = b.fields.Firma || 'MNAU';
-        if (firmaA === firmaB) return 0;
-        return (firmaA === 'MNAU' && firmaB === 'Gecko') ? -1 : 1;
-    };
-
-    if (sortBy === 'name') {
-        processedRecords.sort((a, b) => companyComparator(a, b) || (a.fields.Name || '').localeCompare(b.fields.Name || ' '));
-    } else if (sortBy === 'storage') {
-        processedRecords.sort((a, b) => companyComparator(a, b) || parseStorageData(b.fields.Speicher).freeMB - parseStorageData(a.fields.Speicher).freeMB);
-    }
-
-    let lastCompanySeen = null;
-
-    processedRecords.forEach(record => {
-        const f = record.fields;
-        if (!f.UUID || !f.Name) return;
-
-        const currentFirma = f.Firma || "MNAU";
-
-        if (currentFirma !== lastCompanySeen) {
-            const divider = document.createElement('div');
-            divider.className = `section-divider ${currentFirma.toLowerCase()}-divider`;
-            divider.innerHTML = `<span>${currentFirma} STORAGE UNITS</span>`;
-            content.appendChild(divider);
-            lastCompanySeen = currentFirma;
-        }
-
-        const brandClass = currentFirma === "Gecko" ? "gecko-brand" : "mnau-brand";
-        const storageInfo = parseStorageData(f.Speicher);
-        
-        let barColor = '#2ecc71'; 
-        if (storageInfo.percentUsed >= 90) barColor = '#e74c3c'; 
-        else if (storageInfo.percentUsed >= 70) barColor = '#f1c40f'; 
-
-        const row = document.createElement('div');
-        row.className = `ssd-row ${brandClass}`;
-        row.innerHTML = `
-            <div class="ssd-row-header">
-                <div class="ssd-info-block">
-                    <div class="ssd-row-title">${f.Name}</div>
-                    <div class="ssd-row-meta">Speicher: ${f.Speicher || 'Keine Info'}</div>
-                    <div class="storage-bar-container">
-                        <div class="storage-bar" style="width: ${storageInfo.percentUsed}%; background-color: ${barColor};"></div>
-                    </div>
-                </div>
-                <div class="action-group">
-                    <select id="logo-select-${f.UUID}" class="logo-select" onchange="updateCompanyField('${record.id}', this.value)">
-                        <option value="MNAU" ${currentFirma === 'MNAU' ? 'selected' : ''}>MNAU</option>
-                        <option value="Gecko" ${currentFirma === 'Gecko' ? 'selected' : ''}>Gecko</option>
-                    </select>
-                    <button class="print-btn" onclick="generateLabelPNG('${f.Name}', '${f.UUID}')">
-                        <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"/></svg>
-                        PNG
-                    </button>
-                </div>
-            </div>
-            <details class="ssd-details">
-                <summary>Ordnerstruktur einblenden</summary>
-                <div class="ssd-folders-preview">${generateFolderHTML(f.Ordner, currentFirma)}</div>
-            </details>
-        `;
-        content.appendChild(row);
-    });
 }
 
 /* HTML5 Off-Screen Canvas Label Generator - MIT SMARTEM WORT-UMBRUCH */
