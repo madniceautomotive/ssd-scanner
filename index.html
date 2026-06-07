@@ -373,16 +373,15 @@
             document.getElementById('manager-overlay').style.display = 'none';
         }
 
-        /* NEU: HTML5 Off-Screen Canvas Label Generator (Ausgabe: PNG) */
+        /* HTML5 Off-Screen Canvas Label Generator (Ausgabe: PNG) - FEINGETUNT */
         async function generateLabelPNG(name, uuid) {
             try {
-                // Den ausgewählten Logo-Pfad für diese spezifische Zeile holen
                 const selectedLogoFile = document.getElementById(`logo-select-${uuid}`).value;
 
-                // QR-Code generieren (300px für gestochen scharfe Qualität)
-                const qrDataUrl = await QRCode.toDataURL(uuid, { margin: 1, width: 300 });
+                // QR-Code generieren (Erhöhte Dichte für präzises Scannen)
+                const qrDataUrl = await QRCode.toDataURL(uuid, { margin: 1, width: 340 });
 
-                // Virtueller Canvas mit exakter 15:50 Proportional-Auflösung (300px x 1000px)
+                // Virtueller Canvas mit exakter 15:50 Proportion (300px x 1000px)
                 const labelCanvas = document.createElement('canvas');
                 labelCanvas.width = 300;
                 labelCanvas.height = 1000;
@@ -392,33 +391,42 @@
                 lCtx.fillStyle = '#ffffff';
                 lCtx.fillRect(0, 0, 300, 1000);
 
-                // 2. Ausgewähltes SVG-Logo laden und zeichnen (MNAU oder Gecko)
+                // 2. Ausgewähltes SVG-Logo laden und proportional spannen
                 const logoImg = new Image();
                 logoImg.src = selectedLogoFile;
                 await new Promise((resolve, reject) => {
                     logoImg.onload = resolve;
                     logoImg.onerror = () => reject(new Error(`Logo ${selectedLogoFile} konnte nicht geladen werden.`));
                 });
-                // Entspricht exakt 13mm Breite zentriert im oberen Bereich (Y: 40px bis 300px)
-                lCtx.drawImage(logoImg, 20, 40, 260, 260);
+                
+                // Positionierung oberes Drittel: Zentriert mit 15px Seitenabstand (Breite/Höhe 270px)
+                lCtx.drawImage(logoImg, 15, 40, 270, 270);
 
-                // 3. SSD-Name als Text platzieren
+                // 3. SSD-Name als Text-Trenner im Zentrum platziert
                 lCtx.fillStyle = '#000000';
-                lCtx.font = 'bold 26px -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif';
+                lCtx.font = 'bold 32px -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif';
                 lCtx.textAlign = 'center';
-                lCtx.fillText(name, 150, 365);
+                
+                // Falls der Name zu lang ist, kürzen wir ihn für die 15mm Breite
+                let displayName = name;
+                if (lCtx.measureText(displayName).width > 260) {
+                    while (lCtx.measureText(displayName + "...").width > 260 && displayName.length > 0) {
+                        displayName = displayName.substring(0, displayName.length - 1);
+                    }
+                    displayName += "...";
+                }
+                lCtx.fillText(displayName, 150, 420);
 
-                // 4. QR-Code laden und im unteren Bereich aufzeichnen (Y: 420px bis 680px)
+                // 4. QR-Code im unteren Bereich aufzeichnen
+                // Perfekt nach unten gerückt (Y: 530px bis 930px) -> Füllt das 50mm Band optimal aus
                 const qrImg = new Image();
                 qrImg.src = qrDataUrl;
                 await new Promise((resolve) => qrImg.onload = resolve);
-                lCtx.drawImage(qrImg, 20, 420, 260, 260);
-
-                // HINWEIS: UUID-Klartext wurde wie gewünscht weggelassen!
+                lCtx.drawImage(qrImg, 15, 530, 270, 270);
 
                 // 5. Automatischen PNG-Bild-Download triggern
                 const downloadLink = document.createElement('a');
-                downloadLink.download = `Label_${name.replace(/\s+/g, '_')}.png`;
+                downloadLink.download = `MNAU_Label_${name.replace(/\s+/g, '_')}.png`;
                 downloadLink.href = labelCanvas.toDataURL('image/png');
                 downloadLink.click();
 
