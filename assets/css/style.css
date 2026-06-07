@@ -152,19 +152,14 @@ body, html {
 .ssd-row-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 5px; color: white; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .ssd-row-meta { font-size: 0.88rem; color: #a0aec0; }
 
-/* ==================================================== */
-/* OPTIMIZED: HARDWARE-ACCELERATED STORAGE BARS (GPU)   */
-/* ==================================================== */
+/* REPARIERT: Zurückgestellt auf ultra-stabile Breiten-Transition */
 .storage-bar-container {
     width: 100%; height: 6px; background: rgba(255, 255, 255, 0.08);
     border-radius: 3px; margin-top: 8px; overflow: hidden;
 }
-/* REPARIERT: Nutzt scaleX auf der GPU anstatt der CPU-lastigen Width-Animation */
 .storage-bar {
-    height: 100%; width: 100%;
-    transform-origin: left;
-    transform: scaleX(0); /* Startet unsichtbar auf 0 */
-    transition: transform 0.55s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s;
+    height: 100%; width: 0%; /* Startet bei 0% */
+    transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s;
 }
 
 .action-group { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
@@ -264,7 +259,12 @@ body, html {
 .ssd-row.gecko-brand.recommended-alloc-row { background: rgba(41, 171, 226, 0.04); box-shadow: 0 0 15px rgba(41, 171, 226, 0.15) !important; }
 .gecko-brand .alloc-row-badge { background: #29ABE2; color: #121212; }
 
-@keyframes neonPulse { 0% { box-shadow: 0 0 4px rgba(255,255,255,0.1); } 50% { box-shadow: 0 0 16px var(--glow-color); } 100% { box-shadow: 0 0 4px rgba(255,255,255,0.1); } }
+/* REPARIERT: Tippfehler @title auf @keyframes behoben */
+@keyframes neonPulse {
+    0% { box-shadow: 0 0 4px rgba(255,255,255,0.1); }
+    50% { box-shadow: 0 0 16px var(--glow-color); }
+    100% { box-shadow: 0 0 4px rgba(255,255,255,0.1); }
+}
 .folder-item.highlighted-folder { animation: folderChipIn 0.3s ease forwards, neonPulse 1.8s infinite ease-in-out !important; }
 .ssd-row.mnau-brand .folder-item.highlighted-folder { --glow-color: rgba(0, 255, 115, 0.6); background: #00663a !important; border-color: #00ff73 !important; }
 .ssd-row.mnau-brand .folder-item.highlighted-folder .folder-name { color: #ffffff !important; font-weight: bold !important; }

@@ -263,7 +263,7 @@ function renderManagerList(isInitialLoad = false) {
             }, index * 35);
         }
 
-        // REPARIERT: Nutzt data-target-scale zur GPU-Verarbeitung
+        // REPARIERT: Injektion mit style="width:0%" und data-target-width für den Layout Flush
         row.innerHTML = `
             <div class="ssd-row-header">
                 <div class="ssd-info-block">
@@ -273,7 +273,7 @@ function renderManagerList(isInitialLoad = false) {
                     </div>
                     <div class="ssd-row-meta">Speicher: ${cleanStorageUnits(f.Speicher)}</div>
                     <div class="storage-bar-container">
-                        <div class="storage-bar list-storage-bar" style="background-color: ${barColor};" data-target-scale="${storageInfo.percentUsed / 100}"></div>
+                        <div class="storage-bar list-storage-bar" style="width: 0%; background-color: ${barColor};" data-target-width="${storageInfo.percentUsed}%"></div>
                     </div>
                 </div>
                 <div class="action-group">
@@ -298,13 +298,10 @@ function renderManagerList(isInitialLoad = false) {
         content.appendChild(row);
     });
 
-    // REPARIERT: Triggert scaleX flüssig über die GPU
-    requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-            content.querySelectorAll('.list-storage-bar').forEach(bar => {
-                bar.style.transform = `scaleX(${bar.getAttribute('data-target-scale')})`;
-            });
-        });
+    // REPARIERT: "Forced Reflow" bricht das DOM-Batching auf und zwingt die Listenbalken zur Animation!
+    content.querySelectorAll('.list-storage-bar').forEach(bar => {
+        bar.offsetWidth; // Layout Flush erzwingen
+        bar.style.width = bar.getAttribute('data-target-width');
     });
 
     // FLIP - PHASE 2, 3 & 4: PLAY
@@ -384,7 +381,7 @@ function openScanner() {
     const arStorageBar = document.getElementById('ar-storage-bar');
     if (arStorageBar) {
         arStorageBar.style.transition = 'none';
-        arStorageBar.style.transform = 'scaleX(0)';
+        arStorageBar.style.width = '0%';
     }
 
     navigator.mediaDevices.getUserMedia(cameraConstraints)
@@ -427,7 +424,6 @@ function closeScanner() {
 function tick() {
     if (!isScannerActive) return;
 
-    // TUNING 1: Stoppt die intensive QR-Code-Berechnung, während die App Daten abruft!
     if (isFetching) {
         requestAnimationFrame(tick);
         return;
@@ -470,7 +466,7 @@ async function handleQRDetected(uuid) {
 
     if (arStorageBar) {
         arStorageBar.style.transition = 'none';
-        arStorageBar.style.transform = 'scaleX(0)';
+        arStorageBar.style.width = '0%';
     }
 
     card.classList.add('active');
@@ -502,15 +498,13 @@ async function handleQRDetected(uuid) {
             updateEl.innerText = "Zuletzt aktualisiert: " + (fields.Updates || "-");
             card.style.borderColor = brandColor;
 
-            // TUNING 2: Animiert scaleX über die Hardware des Smartphones
+            // REPARIERT: "Forced Reflow" zwingt den Scanner-Balken zur perfekten CSS-Breitenanimation bei jedem Scan
             if (arStorageBar) {
                 arStorageBar.style.backgroundColor = barColor;
-                requestAnimationFrame(() => {
-                    requestAnimationFrame(() => {
-                        arStorageBar.style.transition = 'transform 0.65s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s';
-                        arStorageBar.style.transform = `scaleX(${storageInfo.percentUsed / 100})`;
-                    });
-                });
+                arStorageBar.style.width = '0%';
+                arStorageBar.offsetWidth; // Layout Flush erzwingen!
+                arStorageBar.style.transition = 'width 0.65s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s';
+                arStorageBar.style.width = `${storageInfo.percentUsed}%`;
             }
         } else {
             nameEl.innerText = "Unbekannte SSD";
