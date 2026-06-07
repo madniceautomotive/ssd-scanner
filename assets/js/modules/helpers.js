@@ -1,4 +1,4 @@
-/* Wandelt kryptische Angaben wie 'Ti'/'Gi' in allgemein verständliche Kürzel ('TB'/'GB') um */
+/* Berechtigt Einheiten: Wandelt kryptische Angaben wie 'Ti'/'Gi' in allgemein verständliche Kürzel ('TB'/'GB') um */
 export function cleanStorageUnits(speicherStr) {
     if (!speicherStr) return "Keine Info";
     return speicherStr
@@ -11,7 +11,7 @@ export function cleanStorageUnits(speicherStr) {
         .replace(/\bM\b/g, 'MB');
 }
 
-/* Berechnet Prozentwerte für den Speicherfortschritt */
+/* Hilfsfunktion: Berechnet Speicher-Prozentwerte für den Fortschrittsbalken */
 export function parseStorageData(speicherStr) {
     const result = { percentUsed: 0, freeMB: 0 };
     if (!speicherStr) return result;
@@ -42,7 +42,7 @@ export function parseStorageData(speicherStr) {
     return result;
 }
 
-/* Ordner-Parser mit Treffer-Hoisting-Sortierung und digitalem Systemmüll-Filter */
+/* Ordner-Parser mit intelligenter Vorsortierung UND digitalem Müll-Filter */
 export function generateFolderHTML(ordnerStr, company, searchTerm = "") {
     if (!ordnerStr || ordnerStr.trim() === "" || ordnerStr.includes("(Leer)")) {
         return '<div class="no-folders">Keine Ordner vorhanden</div>';
@@ -51,7 +51,7 @@ export function generateFolderHTML(ordnerStr, company, searchTerm = "") {
     const folderArray = ordnerStr.split(/\\n|\n/).filter(Boolean).map(f => f.trim());
     if (folderArray.length === 0) return '<div class="no-folders">Keine Ordner vorhanden</div>';
 
-    // System-Müll-Filter (Mac & Windows Geisterdateien übergehen)
+    // System-Müll-Filter (.DS_Store, Windows Papierkörbe und Geisterordner blockieren)
     const exactBlacklist = ['desktop.ini', 'thumbs.db'];
     const partialBlacklist = ['system volume information', 'recycle.bin', 'fseventsd', 'spotlight-v100'];
 
@@ -63,8 +63,11 @@ export function generateFolderHTML(ordnerStr, company, searchTerm = "") {
         return true;
     });
 
-    if (filteredArray.length === 0) return '<div class="no-folders">Keine Ordner vorhanden</div>';
+    if (filteredArray.length === 0) {
+        return '<div class="no-folders">Keine Ordner vorhanden</div>';
+    }
 
+    // 1. Ordner in strukturierte Objekte mit Match-Status überführen
     const folderObjects = filteredArray.map(folder => {
         return {
             name: folder,
@@ -72,7 +75,7 @@ export function generateFolderHTML(ordnerStr, company, searchTerm = "") {
         };
     });
 
-    // Treffer ganz oben einreihen
+    // 2. DYNAMISCHE CHIP-SORTIERUNG: Gefundene Ordner (isMatched === true) nach ganz oben schieben (Hoisting)
     folderObjects.sort((a, b) => {
         if (a.isMatched && !b.isMatched) return -1;
         if (!a.isMatched && b.isMatched) return 1;
@@ -81,6 +84,7 @@ export function generateFolderHTML(ordnerStr, company, searchTerm = "") {
 
     const iconColor = company === "Gecko" ? "#29ABE2" : "#00663a";
 
+    // 3. HTML generieren basierend auf der neuen, gesäuberten und sortierten Liste
     return folderObjects.map((folderObj, index) => {
         const isMatched = folderObj.isMatched;
         const highlightClass = isMatched ? "highlighted-folder" : "";

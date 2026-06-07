@@ -1,4 +1,4 @@
-// Importiert Berechnungen und Druck-Logiken aus den Modulen
+// Importiert Berechnungen und Druck-Logiken EXKLUSIV aus den Modulen
 import { cleanStorageUnits, parseStorageData, generateFolderHTML } from './modules/helpers.js';
 import { generateLabelPNG } from './modules/printer.js';
 
@@ -38,22 +38,20 @@ function toggleFeatureHub() {
     panel.classList.toggle('active');
 }
 
-/* NEU: Schaltet das Custom-Sortier-Dropdown-Menü aktiv oder inaktiv */
+/* Schaltet das Custom-Sortier-Dropdown-Menü aktiv oder inaktiv */
 function toggleSortMenu(event) {
-    if (event) event.stopPropagation(); // Verhindert, dass der globale Schließ-Trigger sofort feuert
+    if (event) event.stopPropagation();
     const menu = document.getElementById('sort-dropdown-menu');
     if (menu) menu.classList.toggle('active');
 }
 
-/* NEU: Setzt den Sortier-State im versteckten HTML-Feld, steuert die LED-Klassen und triggert den FLIP-Effekt */
+/* Setzt den Sortier-State im versteckten HTML-Feld, steuert die LED-Klassen und triggert den FLIP-Effekt */
 function setSortMode(mode, event) {
     if (event) event.stopPropagation();
 
-    // Versteckten State-Input füttern (Sichert Abwärtskompatibilität mit alter Render-Logik)
     const hiddenInput = document.getElementById('db-sort');
     if (hiddenInput) hiddenInput.value = mode;
 
-    // Visuelle Aktiv-Klasse auf den Optionen umschalten
     const options = document.querySelectorAll('.sort-option');
     options.forEach(opt => {
         if (opt.getAttribute('data-sort-val') === mode) {
@@ -63,15 +61,13 @@ function setSortMode(mode, event) {
         }
     });
 
-    // Menü zuklappen
     const menu = document.getElementById('sort-dropdown-menu');
     if (menu) menu.classList.remove('active');
 
-    // Liste flüssig per FLIP-Engine neu anordnen
     renderManagerList(false);
 }
 
-// GLOBALER EVENT-LISTENER: Schließt das Sortier-Menü automatisch bei einem Klick ins Leere
+// Schließt das Sortier-Menü automatisch bei einem Klick ins Leere
 document.addEventListener('click', () => {
     const menu = document.getElementById('sort-dropdown-menu');
     if (menu) menu.classList.remove('active');
@@ -105,7 +101,7 @@ async function fetchDatabase() {
 /* HIGH-PERFORMANCE FLIP ENGINE: Filtert, sortiert und berechnet Speicherallokationen */
 function renderManagerList(isInitialLoad = false) {
     const content = document.getElementById('manager-content');
-    const sortBy = document.getElementById('db-sort').value; // Liest fehlerfrei das versteckte State-Feld aus!
+    const sortBy = document.getElementById('db-sort').value;
     const searchTerm = document.getElementById('db-search').value.toLowerCase().trim();
 
     // SICHTBARKEITS-SCHALTUNG FÜR DAS LÖSCHKREUZ
@@ -453,6 +449,7 @@ function resetClearTimer() {
     }, 6000);
 }
 
+// Global an Window binden für den HTML-Klick-Trigger
 window.openScanner = openScanner;
 window.closeScanner = closeScanner;
 window.renderManagerList = renderManagerList;
@@ -460,5 +457,5 @@ window.updateCompanyField = updateCompanyField;
 window.generateLabelPNG = generateLabelPNG;
 window.toggleFeatureHub = toggleFeatureHub;
 window.clearSearch = clearSearch;
-window.toggleSortMenu = toggleSortMenu; // NEW Dropdown Trigger
-window.setSortMode = setSortMode;       // NEW Mode Manager
+window.toggleSortMenu = toggleSortMenu;
+window.setSortMode = setSortMode;
