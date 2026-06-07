@@ -373,7 +373,7 @@
             document.getElementById('manager-overlay').style.display = 'none';
         }
 
-        /* HTML5 Off-Screen Canvas Label Generator (Ausgabe: PNG) - FEINGETUNT */
+        /* HTML5 Off-Screen Canvas Label Generator (Ausgabe: PNG) - MAX SSD NAME SIZE */
         async function generateLabelPNG(name, uuid) {
             try {
                 const selectedLogoFile = document.getElementById(`logo-select-${uuid}`).value;
@@ -402,23 +402,24 @@
                 // Positionierung oberes Drittel: Zentriert mit 15px Seitenabstand (Breite/Höhe 270px)
                 lCtx.drawImage(logoImg, 15, 40, 270, 270);
 
-                // 3. SSD-Name als Text-Trenner im Zentrum platziert
+                // 3. JETZT DYNAMISCH: Schriftgröße so groß wie physikalisch möglich machen
                 lCtx.fillStyle = '#000000';
-                lCtx.font = 'bold 32px -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif';
                 lCtx.textAlign = 'center';
+                lCtx.textBaseline = 'middle'; // Perfekte vertikale Ausrichtung im Slot-Zentrum
                 
-                // Falls der Name zu lang ist, kürzen wir ihn für die 15mm Breite
-                let displayName = name;
-                if (lCtx.measureText(displayName).width > 260) {
-                    while (lCtx.measureText(displayName + "...").width > 260 && displayName.length > 0) {
-                        displayName = displayName.substring(0, displayName.length - 1);
-                    }
-                    displayName += "...";
-                }
-                lCtx.fillText(displayName, 150, 420);
+                let fontSize = 110; // Aggressiver, riesiger Startwert für die Schrifthöhe
+                const maxWidth = 270; // 300px Gesamtbreite minus 15px Sicherheitsrand links/rechts
+                
+                // Die Schleife verkleinert die Schrift so lange, bis sie exakt auf die Breite passt
+                do {
+                    lCtx.font = `bold ${fontSize}px -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif`;
+                    fontSize--;
+                } while (lCtx.measureText(name).width > maxWidth && fontSize > 12);
+
+                // Setzt den Namen genau zentriert in das mittlere Drittel des Bands (Y: 420)
+                lCtx.fillText(name, 150, 420);
 
                 // 4. QR-Code im unteren Bereich aufzeichnen
-                // Perfekt nach unten gerückt (Y: 530px bis 930px) -> Füllt das 50mm Band optimal aus
                 const qrImg = new Image();
                 qrImg.src = qrDataUrl;
                 await new Promise((resolve) => qrImg.onload = resolve);
