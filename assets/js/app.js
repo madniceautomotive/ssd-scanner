@@ -263,7 +263,7 @@ function renderManagerList(isInitialLoad = false) {
             }, index * 35);
         }
 
-        // REPARIERT: Balken startet bei width: 0% und bekommt eine Kontrollklasse für die JS-Animation spendiert
+        // REPARIERT: Nutzt data-target-scale zur GPU-Verarbeitung
         row.innerHTML = `
             <div class="ssd-row-header">
                 <div class="ssd-info-block">
@@ -273,7 +273,7 @@ function renderManagerList(isInitialLoad = false) {
                     </div>
                     <div class="ssd-row-meta">Speicher: ${cleanStorageUnits(f.Speicher)}</div>
                     <div class="storage-bar-container">
-                        <div class="storage-bar list-storage-bar" style="width: 0%; background-color: ${barColor};" data-target-width="${storageInfo.percentUsed}%"></div>
+                        <div class="storage-bar list-storage-bar" style="background-color: ${barColor};" data-target-scale="${storageInfo.percentUsed / 100}"></div>
                     </div>
                 </div>
                 <div class="action-group">
@@ -298,11 +298,11 @@ function renderManagerList(isInitialLoad = false) {
         content.appendChild(row);
     });
 
-    // NEU: Triggert die Auflade-Animation der Balken in der Listenansicht bei jedem Rendern
+    // REPARIERT: Triggert scaleX flüssig über die GPU
     requestAnimationFrame(() => {
         requestAnimationFrame(() => {
             content.querySelectorAll('.list-storage-bar').forEach(bar => {
-                bar.style.width = bar.getAttribute('data-target-width');
+                bar.style.transform = `scaleX(${bar.getAttribute('data-target-scale')})`;
             });
         });
     });
@@ -381,11 +381,10 @@ function openScanner() {
     isScannerActive = true;
     lastUUID = "";
 
-    // Reset des Scanner-Balkens auf Nullstellung vor dem Öffnen
     const arStorageBar = document.getElementById('ar-storage-bar');
     if (arStorageBar) {
         arStorageBar.style.transition = 'none';
-        arStorageBar.style.width = '0%';
+        arStorageBar.style.transform = 'scaleX(0)';
     }
 
     navigator.mediaDevices.getUserMedia(cameraConstraints)
@@ -428,6 +427,12 @@ function closeScanner() {
 function tick() {
     if (!isScannerActive) return;
 
+    // TUNING 1: Stoppt die intensive QR-Code-Berechnung, während die App Daten abruft!
+    if (isFetching) {
+        requestAnimationFrame(tick);
+        return;
+    }
+
     if (video.readyState === video.HAVE_ENOUGH_DATA) {
         canvas.height = video.videoHeight;
         canvas.width = video.videoWidth;
@@ -463,10 +468,9 @@ async function handleQRDetected(uuid) {
     const updateEl = document.getElementById('ssd-update');
     const arStorageBar = document.getElementById('ar-storage-bar');
 
-    // Blitzschneller Reset des Balkens auf 0% bei Erkennung einer neuen ID
     if (arStorageBar) {
         arStorageBar.style.transition = 'none';
-        arStorageBar.style.width = '0%';
+        arStorageBar.style.transform = 'scaleX(0)';
     }
 
     card.classList.add('active');
@@ -498,13 +502,13 @@ async function handleQRDetected(uuid) {
             updateEl.innerText = "Zuletzt aktualisiert: " + (fields.Updates || "-");
             card.style.borderColor = brandColor;
 
-            // NEU: Triggert die dynamische Auflade-Animation im Kamera-Interface
+            // TUNING 2: Animiert scaleX über die Hardware des Smartphones
             if (arStorageBar) {
                 arStorageBar.style.backgroundColor = barColor;
                 requestAnimationFrame(() => {
                     requestAnimationFrame(() => {
-                        arStorageBar.style.transition = 'width 0.65s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s';
-                        arStorageBar.style.width = `${storageInfo.percentUsed}%`;
+                        arStorageBar.style.transition = 'transform 0.65s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s';
+                        arStorageBar.style.transform = `scaleX(${storageInfo.percentUsed / 100})`;
                     });
                 });
             }
