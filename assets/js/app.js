@@ -8,7 +8,7 @@ const ctx = canvas.getContext('2d');
 let lastUUID = "";
 let isFetching = false;
 let clearTimer = null;
-let databaseRecords = []; // Lokaler Zwischenspeicher für Sortierung/Suche
+let databaseRecords = [];
 
 let cameraStream = null;
 let isScannerActive = false;
@@ -38,13 +38,52 @@ function toggleFeatureHub() {
     panel.classList.toggle('active');
 }
 
-/* NEU: Leert das Suchfeld per Klick, setzt den Fokus zurück und aktualisiert die Liste */
+/* NEU: Schaltet das Custom-Sortier-Dropdown-Menü aktiv oder inaktiv */
+function toggleSortMenu(event) {
+    if (event) event.stopPropagation(); // Verhindert, dass der globale Schließ-Trigger sofort feuert
+    const menu = document.getElementById('sort-dropdown-menu');
+    if (menu) menu.classList.toggle('active');
+}
+
+/* NEU: Setzt den Sortier-State im versteckten HTML-Feld, steuert die LED-Klassen und triggert den FLIP-Effekt */
+function setSortMode(mode, event) {
+    if (event) event.stopPropagation();
+
+    // Versteckten State-Input füttern (Sichert Abwärtskompatibilität mit alter Render-Logik)
+    const hiddenInput = document.getElementById('db-sort');
+    if (hiddenInput) hiddenInput.value = mode;
+
+    // Visuelle Aktiv-Klasse auf den Optionen umschalten
+    const options = document.querySelectorAll('.sort-option');
+    options.forEach(opt => {
+        if (opt.getAttribute('data-sort-val') === mode) {
+            opt.classList.add('active');
+        } else {
+            opt.classList.remove('active');
+        }
+    });
+
+    // Menü zuklappen
+    const menu = document.getElementById('sort-dropdown-menu');
+    if (menu) menu.classList.remove('active');
+
+    // Liste flüssig per FLIP-Engine neu anordnen
+    renderManagerList(false);
+}
+
+// GLOBALER EVENT-LISTENER: Schließt das Sortier-Menü automatisch bei einem Klick ins Leere
+document.addEventListener('click', () => {
+    const menu = document.getElementById('sort-dropdown-menu');
+    if (menu) menu.classList.remove('active');
+});
+
+/* Leert das Suchfeld per Klick, setzt den Fokus zurück und aktualisiert die Liste */
 function clearSearch() {
     const searchInput = document.getElementById('db-search');
     if (searchInput) {
         searchInput.value = '';
-        renderManagerList(); // Führt die FLIP-Fluganimation zurück zur ungefilterten Liste aus
-        searchInput.focus(); // Behält den Fokus bei mobiler Nutzung, damit die Tastatur nicht zuklappt
+        renderManagerList();
+        searchInput.focus();
     }
 }
 
@@ -66,15 +105,12 @@ async function fetchDatabase() {
 /* HIGH-PERFORMANCE FLIP ENGINE: Filtert, sortiert und berechnet Speicherallokationen */
 function renderManagerList(isInitialLoad = false) {
     const content = document.getElementById('manager-content');
-    const sortBy = document.getElementById('db-sort').value;
+    const sortBy = document.getElementById('db-sort').value; // Liest fehlerfrei das versteckte State-Feld aus!
     const searchTerm = document.getElementById('db-search').value.toLowerCase().trim();
 
-    // ----------------------------------------------------
-    // NEU: SICHTBARKEITS-SCHALTUNG FÜR DAS LÖSCHKREUZ
-    // ----------------------------------------------------
+    // SICHTBARKEITS-SCHALTUNG FÜR DAS LÖSCHKREUZ
     const clearBtn = document.getElementById('search-clear-btn');
     if (clearBtn) {
-        // Das Kreuz erscheint im Suchschlitz nur, wenn wirklich Text drinsteht!
         clearBtn.style.display = searchTerm !== "" ? "flex" : "none";
     }
 
@@ -417,11 +453,12 @@ function resetClearTimer() {
     }, 6000);
 }
 
-// Global an Window binden für den HTML-Klick-Trigger
 window.openScanner = openScanner;
 window.closeScanner = closeScanner;
 window.renderManagerList = renderManagerList;
 window.updateCompanyField = updateCompanyField;
 window.generateLabelPNG = generateLabelPNG;
 window.toggleFeatureHub = toggleFeatureHub;
-window.clearSearch = clearSearch; // NEU: Löschfunktion für Window freigeben
+window.clearSearch = clearSearch;
+window.toggleSortMenu = toggleSortMenu; // NEW Dropdown Trigger
+window.setSortMode = setSortMode;       // NEW Mode Manager

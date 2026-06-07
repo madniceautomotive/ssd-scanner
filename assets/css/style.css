@@ -25,15 +25,14 @@ body, html {
     -webkit-background-clip: text; -webkit-text-fill-color: transparent;
 }
 
+/* Der Kontroll-Balken: Bleibt nun immer ein horizontales Grid */
 .header-controls-row {
-    display: flex; width: 100%; gap: 12px; align-items: center;
+    display: flex; width: 100%; gap: 10px; align-items: center;
+}
+.search-group {
+    position: relative; flex: 1; /* Nimmt dynamisch den gesamten freien Raum ein */
 }
 
-/* WICHTIG: Relativ gesetzt, um das Löschkreuz absolut darin zu verankern */
-.search-group {
-    position: relative; flex: 2;
-}
-/* Rechter Innenabstand erhöht, damit Text nicht unter dem Kreuz durchläuft */
 .search-input {
     width: 100%; background: #1c1c1c; color: white; border: 1px solid rgba(0, 102, 58, 0.5);
     padding: 11px 42px 11px 14px; border-radius: 10px; box-sizing: border-box;
@@ -44,7 +43,6 @@ body, html {
     border-color: #00ff73; box-shadow: 0 0 12px rgba(0, 255, 115, 0.15);
 }
 
-/* Das neue Such-Löschkreuz */
 .search-clear-btn {
     position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
     background: none; border: none; padding: 0; cursor: pointer;
@@ -54,21 +52,47 @@ body, html {
 }
 .search-clear-btn:hover { background-color: rgba(255, 255, 255, 0.06); }
 .search-clear-btn svg { width: 13px; height: 13px; fill: #718096; transition: fill 0.15s; }
-.search-clear-btn:hover svg { fill: #e74c3c; } /* Tech-Rot bei Annäherung */
+.search-clear-btn:hover svg { fill: #e74c3c; }
 
-.sort-group {
-    flex: 1; min-width: 180px;
+/* ==================================================== */
+/* NEW: ARCHITECTURE FÜR CUSTOM ICON SORT DROPDOWN     */
+/* ==================================================== */
+.sort-dropdown-container {
+    position: relative; display: inline-block; flex-shrink: 0;
 }
-.sort-select, .logo-select {
-    -webkit-appearance: none; -moz-appearance: none; appearance: none;
-    background: #1c1c1c; color: white; border: 1px solid rgba(0, 102, 58, 0.5);
-    padding: 11px 32px 11px 14px; border-radius: 10px; font-weight: 600; outline: none; cursor: pointer; font-size: 0.88rem; width: 100%;
-    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
-    background-repeat: no-repeat; background-position: right 12px center; background-size: 16px;
-    transition: transform 0.15s ease, border-color 0.2s;
+.sort-icon-btn {
+    background: #1c1c1c; border: 1px solid rgba(0, 102, 58, 0.5); color: #a0aec0;
+    width: 43px; height: 43px; border-radius: 10px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; padding: 0;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.sort-select:active, .logo-select:active { transform: scale(0.98); }
+.sort-icon-btn:hover { color: white; border-color: #00ff73; background: #222222; }
+.sort-icon-btn:active { transform: scale(0.93); }
+.sort-icon-btn svg { width: 18px; height: 18px; fill: currentColor; }
 
+/* Das schwebende Dropdown-Menü */
+.sort-dropdown-menu {
+    position: absolute; top: 50px; right: 0; background: #1a1a1a;
+    border: 1px solid #00663a; border-radius: 8px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.7); display: none; z-index: 100;
+    min-width: 170px; overflow: hidden; transform: translateY(-10px); opacity: 0;
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.15s ease;
+}
+.sort-dropdown-menu.active {
+    display: block; transform: translateY(0); opacity: 1;
+}
+.sort-option {
+    padding: 12px 16px; font-size: 0.85rem; color: #a0aec0; cursor: pointer;
+    transition: background 0.2s, color 0.2s; text-align: left; font-weight: 500;
+}
+.sort-option:hover { background: rgba(255, 255, 255, 0.04); color: white; }
+.sort-option.active {
+    color: #00ff73; font-weight: bold; background: rgba(0, 102, 58, 0.15);
+}
+
+/* ==================================================== */
+/* FEATURE HUB CONFIG                                   */
+/* ==================================================== */
 .feature-toggle-btn {
     background: #1c1c1c; border: 1px solid rgba(0, 102, 58, 0.5); color: #a0aec0;
     padding: 8px 14px; border-radius: 8px; font-size: 0.82rem; font-weight: 700;
@@ -80,7 +104,6 @@ body, html {
 .feature-toggle-btn:hover svg { fill: #00ff73; transform: rotate(45deg); }
 .feature-toggle-btn:active { transform: scale(0.95); }
 
-/* SLIDING FEATURE HUB DRAWERS STYLING */
 .feature-hub-panel {
     background: #161616; border-bottom: 1px solid rgba(0, 102, 58, 0.15);
     max-height: 0; overflow: hidden; opacity: 0; visibility: hidden;
@@ -101,7 +124,7 @@ body, html {
 .alloc-input { width: 110px !important; text-align: center; }
 .alloc-unit { width: 85px !important; }
 
-/* Suggestion Box im Listenkörper */
+/* Suggestion Box */
 .suggestion-box {
     background: rgba(0, 102, 58, 0.03); border: 1px dashed rgba(0, 102, 58, 0.4);
     border-radius: 12px; padding: 16px 20px; margin-bottom: 20px; font-size: 0.9rem; line-height: 1.6; color: #e2e8f0;
@@ -114,23 +137,19 @@ body, html {
 .alloc-chip-container { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .alloc-target-chip { background: #1c1c1c; border: 1px solid #00663a; color: #ffffff; padding: 4px 12px; border-radius: 20px; font-weight: 600; font-size: 0.8rem; }
 
-/* CORE CONTAINER LISTINGS */
+/* LISTINGS & ROWS */
 .manager-content { flex: 1; overflow-y: auto; padding: 20px; padding-bottom: 90px; }
-
 .ssd-row {
     background: rgba(255, 255, 255, 0.03); border-radius: 12px;
     padding: 16px; margin-bottom: 14px; border-left: 4px solid #00663a;
     display: flex; flex-direction: column; align-items: stretch; will-change: transform, opacity;
 }
-.ssd-row-header {
-    display: flex; justify-content: space-between; align-items: center; gap: 16px;
-}
+.ssd-row-header { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
 .ssd-info-block { flex: 1; min-width: 0; }
 .ssd-row-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 5px; color: white; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .ssd-row-meta { font-size: 0.88rem; color: #a0aec0; }
 .storage-bar-container { width: 100%; height: 6px; background: rgba(255, 255, 255, 0.08); border-radius: 3px; margin-top: 8px; overflow: hidden; }
 .storage-bar { height: 100%; width: 0%; transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s; }
-
 .action-group { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .print-btn {
     background: #00663a; border: none; color: white; padding: 10px 14px; border-radius: 8px; font-weight: bold;
@@ -140,17 +159,13 @@ body, html {
 .print-btn:active { transform: scale(0.92); }
 
 /* Badges & Highlighting */
-.alloc-row-badge {
-    background: #00663a; color: white; padding: 3px 8px; border-radius: 5px; font-size: 0.65rem; text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px; display: inline-block; line-height: 1;
-}
+.alloc-row-badge { background: #00663a; color: white; padding: 3px 8px; border-radius: 5px; font-size: 0.65rem; text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px; display: inline-block; line-height: 1; }
 .gecko-brand .alloc-row-badge { background: #29ABE2; color: #121212; }
 .ssd-row.recommended-alloc-row { background: rgba(0, 102, 58, 0.06); box-shadow: 0 0 15px rgba(0, 102, 58, 0.15) !important; }
 .ssd-row.gecko-brand.recommended-alloc-row { background: rgba(41, 171, 226, 0.04); box-shadow: 0 0 15px rgba(41, 171, 226, 0.15) !important; }
 
-/* SMART RESPONSIVE OVERLAP SHIFT FOR MOBILE */
+/* REPARIERT: .header-controls-row wurde aus dem Media-Query entfernt, um Nebeneinander-Verhalten zu sichern! */
 @media (max-width: 580px) {
-    .header-controls-row { flex-direction: column; gap: 10px; }
-    .search-group, .sort-group { width: 100%; }
     .ssd-row-header { flex-direction: column; align-items: stretch; gap: 14px; }
     .action-group { justify-content: space-between; width: 100%; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 12px; }
     .action-group .logo-select { flex: 1; }
@@ -170,6 +185,13 @@ body, html {
 .folder-icon { width: 16px; height: 16px; flex-shrink: 0; }
 .folder-name { font-size: 0.85rem; color: #e2e8f0; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .no-folders { font-size: 0.82rem; color: #718096; font-style: italic; padding: 4px; }
+
+.sort-select {
+    display: none !important; /* Wird im Header durch Custom Dropdown ersetzt, bleibt nur im Feature-Hub */
+}
+.alloc-unit {
+    display: block !important;
+}
 
 @keyframes neonPulse { 0% { box-shadow: 0 0 4px rgba(255,255,255,0.1); } 50% { box-shadow: 0 0 16px var(--glow-color); } 100% { box-shadow: 0 0 4px rgba(255,255,255,0.1); } }
 .folder-item.highlighted-folder { animation: folderChipIn 0.3s ease forwards, neonPulse 1.8s infinite ease-in-out !important; }
@@ -196,23 +218,16 @@ body, html {
 .ar-card.active { transform: translate(-50%, 0); opacity: 1; }
 .update-time { font-size: 0.72rem; color: #a0aec0; text-align: right; margin-top: 22px; border-top: 1px dashed rgba(255, 255, 255, 0.08); padding-top: 10px; }
 
-/* ==================================================== */
-/* NEW UPGRADE: SLEEK CIRCULAR CROSS BUTTON             */
-/* ==================================================== */
 .close-scanner-btn {
     position: absolute; top: 24px; right: 24px; z-index: 15;
     background: rgba(20, 20, 20, 0.8); border: 1px solid rgba(0, 255, 115, 0.4);
     width: 44px; height: 44px; border-radius: 50%; cursor: pointer;
     display: flex; align-items: center; justify-content: center; padding: 0;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.4); transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .close-scanner-btn svg { width: 18px; height: 18px; fill: #a0aec0; transition: fill 0.2s, transform 0.25s; }
-.close-scanner-btn:hover {
-    background: rgba(231, 76, 60, 0.8); border-color: #ffffff;
-    box-shadow: 0 0 15px rgba(231, 76, 60, 0.5);
-}
-.close-scanner-btn:hover svg { fill: #ffffff; transform: rotate(90deg); } /* Kreuz dreht sich snappy beim Hovern */
+.close-scanner-btn:hover { background: rgba(231, 76, 60, 0.8); border-color: #ffffff; box-shadow: 0 0 15px rgba(231, 76, 60, 0.5); }
+.close-scanner-btn:hover svg { fill: #ffffff; transform: rotate(90deg); }
 .close-scanner-btn:active { transform: scale(0.9); }
 
 #loading-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #121212; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #ffffff; font-size: 1.2rem; }
