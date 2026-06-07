@@ -15,13 +15,13 @@ body, html {
     position: absolute; top: 40%; left: 50%;
     transform: translate(-50%, -50%);
     width: 240px; height: 240px;
-    border: 2px dashed rgba(0, 255, 204, 0.5);
+    border: 2px dashed rgba(0, 102, 58, 0.6);
     border-radius: 24px;
     box-sizing: border-box;
 }
 .scan-region::before {
     content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 3px;
-    background: #00ffcc; box-shadow: 0 0 12px #00ffcc;
+    background: #00ff73; box-shadow: 0 0 12px #00ff73;
     animation: scan 2s linear infinite;
 }
 @keyframes scan {
@@ -33,18 +33,18 @@ body, html {
     position: absolute; bottom: 40px; left: 50%;
     transform: translateX(-50%); width: 92%; max-width: 420px;
     background: rgba(10, 17, 28, 0.94);
-    border: 2px solid #00ffcc;
-    box-shadow: 0 0 30px rgba(0, 255, 204, 0.3);
+    border: 2px solid #00663a;
+    box-shadow: 0 0 30px rgba(0, 102, 58, 0.4);
     border-radius: 16px; padding: 20px; color: white;
     box-sizing: border-box; transition: all 0.3s ease;
     display: none; pointer-events: auto;
 }
 .ar-card h2 {
-    margin: 0 0 4px 0; color: #00ffcc; font-size: 1.4rem;
+    margin: 0 0 4px 0; color: #ffffff; font-size: 1.4rem;
     letter-spacing: 0.5px;
 }
 .speicher-info {
-    font-size: 1.1rem; font-weight: bold; color: #fff; margin-bottom: 12px;
+    font-size: 1.1rem; font-weight: bold; color: #a0aec0; margin-bottom: 12px;
 }
 .folder-title {
     font-size: 0.8rem; text-transform: uppercase; color: #718096;
@@ -55,7 +55,7 @@ body, html {
     padding: 12px; max-height: 140px; overflow-y: auto;
     font-family: "SF Mono", Monaco, Consolas, monospace;
     font-size: 0.85rem; white-space: pre-wrap; line-height: 1.4;
-    border-left: 3px solid #00ffcc;
+    border-left: 3px solid #00663a;
 }
 .update-time {
     font-size: 0.72rem; color: #a0aec0; text-align: right; margin-top: 10px;
@@ -64,11 +64,11 @@ body, html {
     position: absolute; top: 0; left: 0; width: 100%; height: 100%;
     background: #0a111c; z-index: 10; display: flex;
     flex-direction: column; align-items: center; justify-content: center;
-    color: #00ffcc; font-size: 1.2rem;
+    color: #ffffff; font-size: 1.2rem;
 }
 .spinner {
-    width: 40px; height: 40px; border: 4px solid rgba(0,255,204,0.1);
-    border-top-color: #00ffcc; border-radius: 50%;
+    width: 40px; height: 40px; border: 4px solid rgba(0, 102, 58, 0.2);
+    border-top-color: #00663a; border-radius: 50%;
     animation: spin 1s linear infinite; margin-bottom: 20px;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -77,13 +77,13 @@ body, html {
 .fab {
     position: absolute; bottom: 30px; right: 30px; z-index: 5;
     width: 60px; height: 60px; background: #0a111c;
-    border: 2px solid #00ffcc; border-radius: 50%;
-    box-shadow: 0 0 15px rgba(0, 255, 204, 0.4);
+    border: 2px solid #00663a; border-radius: 50%;
+    box-shadow: 0 0 15px rgba(0, 102, 58, 0.4);
     display: flex; align-items: center; justify-content: center;
     cursor: pointer; pointer-events: auto; transition: all 0.2s ease;
 }
 .fab:active { transform: scale(0.9); }
-.fab svg { width: 26px; height: 26px; fill: #00ffcc; }
+.fab svg { width: 26px; height: 26px; fill: #ffffff; }
 
 /* Fullscreen Manager Overlay */
 .manager-overlay {
@@ -93,12 +93,23 @@ body, html {
     box-sizing: border-box; pointer-events: auto;
 }
 .manager-header {
-    padding: 24px 20px; border-bottom: 1px solid rgba(0, 255, 204, 0.2);
+    padding: 24px 20px; border-bottom: 1px solid rgba(0, 102, 58, 0.3);
     display: flex; justify-content: space-between; align-items: center;
+    gap: 10px; flex-wrap: wrap;
 }
-.manager-header h1 { margin: 0; font-size: 1.5rem; color: #00ffcc; }
+.manager-header h1 { margin: 0; font-size: 1.4rem; color: #ffffff; }
+
+/* Sortiergruppe im Header */
+.sort-group {
+    display: flex; align-items: center; gap: 8px; font-size: 0.9rem; color: #a0aec0;
+}
+.sort-select {
+    background: #0a111c; color: white; border: 1px solid #00663a;
+    padding: 8px 12px; border-radius: 8px; font-weight: bold; outline: none; cursor: pointer;
+}
+
 .close-btn {
-    background: none; border: 1px solid #00ffcc; color: #00ffcc;
+    background: #00663a; border: none; color: white;
     padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: bold;
 }
 .manager-content {
@@ -106,7 +117,7 @@ body, html {
 }
 .ssd-row {
     background: rgba(255, 255, 255, 0.05); border-radius: 12px;
-    padding: 16px; margin-bottom: 14px; border-left: 4px solid #00ffcc;
+    padding: 16px; margin-bottom: 14px; border-left: 4px solid #00663a;
     display: flex; flex-direction: column; align-items: stretch;
 }
 .ssd-row-header {
@@ -114,20 +125,29 @@ body, html {
     gap: 10px;
 }
 .ssd-info-block { flex: 1; min-width: 0; }
-.ssd-row-title { font-size: 1.2rem; font-weight: bold; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ssd-row-title { font-size: 1.2rem; font-weight: bold; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: white; }
 .ssd-row-meta { font-size: 0.9rem; color: #a0aec0; }
+
+/* Visueller Speicherbalken */
+.storage-bar-container {
+    width: 100%; height: 6px; background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px; margin-top: 8px; overflow: hidden;
+}
+.storage-bar {
+    height: 100%; width: 0%; transition: width 0.4s ease, background-color 0.4s ease;
+}
 
 /* Action Group & Dropdown Menu */
 .action-group {
     display: flex; align-items: center; gap: 8px;
 }
 .logo-select {
-    background: #0a111c; color: #00ffcc; border: 1px solid #00ffcc;
+    background: #0a111c; color: white; border: 1px solid #00663a;
     padding: 9px 8px; border-radius: 8px; font-weight: bold; outline: none;
     cursor: pointer; font-size: 0.85rem;
 }
 .print-btn {
-    background: #00ffcc; border: none; color: #0a111c;
+    background: #00663a; border: none; color: white;
     padding: 10px 14px; border-radius: 8px; font-weight: bold;
     cursor: pointer; display: flex; align-items: center; gap: 6px;
     transition: background 0.2s; font-size: 0.85rem;
@@ -137,17 +157,17 @@ body, html {
 /* Ordner-Akkordeon */
 .ssd-details {
     margin-top: 12px; padding-top: 10px;
-    border-top: 1px solid rgba(0, 255, 204, 0.1);
+    border-top: 1px solid rgba(0, 102, 58, 0.2);
 }
 .ssd-details summary {
-    color: #00ffcc; font-size: 0.85rem; cursor: pointer;
+    color: #a0aec0; font-size: 0.85rem; cursor: pointer;
     outline: none; user-select: none; list-style: none;
     display: flex; align-items: center; gap: 6px;
 }
 .ssd-details summary::-webkit-details-marker { display: none; }
 .ssd-details summary::before {
     content: '▶'; display: inline-block; font-size: 0.7rem;
-    transition: transform 0.2s ease; color: #00ffcc;
+    transition: transform 0.2s ease; color: #00663a;
 }
 .ssd-details[open] summary::before { transform: rotate(90deg); }
 .ssd-folders-preview {
@@ -155,5 +175,5 @@ body, html {
     padding: 10px; margin-top: 8px; max-height: 160px; overflow-y: auto;
     font-family: "SF Mono", Monaco, Consolas, monospace;
     font-size: 0.8rem; white-space: pre-wrap; line-height: 1.4;
-    border-left: 2px solid #00ffcc; color: #e2e8f0;
+    border-left: 2px solid #00663a; color: #e2e8f0;
 }

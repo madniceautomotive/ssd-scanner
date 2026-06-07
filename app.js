@@ -4,14 +4,16 @@ const ctx = canvas.getContext('2d');
 let lastUUID = "";
 let isFetching = false;
 let clearTimer = null;
+let databaseRecords = []; // Lokaler Zwischenspeicher für die Sortierung
 
 // ----------------------------------------------------
-// HIER STEHEN DEINE DATEN FELSENFEST IM CODE (Sicher im privaten Repo!)
+// AIRTABLE ACCESS CONFIGURATION (Sicher im privaten Repository)
 const airtableToken = "pat4ytEWExJctNU62.59f8c764a353cf3d3571ea45e9d0d2e713e95a5a83499e97c5770f60850170b9";
 const baseId = "appXKM0UQ8uJLuiNB";
 const tableName = "SSDs";
 // ----------------------------------------------------
 
+// Kamera-Feed mit Weitwinkel/Rückkamera initialisieren
 navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
     .then(function(stream) {
         video.srcObject = stream;
@@ -25,6 +27,7 @@ navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
         console.error(err);
     });
 
+// QR-Code Live-Scan-Schleife
 function tick() {
     if (video.readyState === video.HAVE_ENOUGH_DATA) {
         canvas.height = video.videoHeight;
@@ -48,6 +51,40 @@ function tick() {
     requestAnimationFrame(tick);
 }
 
+// Hilfsfunktion: Berechnet Speicher-Prozentwerte und extrahiert MB für die Sortierung
+function parseStorageData(speicherStr) {
+    const result = { percentUsed: 0, freeMB: 0 };
+    if (!speicherStr) return result;
+
+    // Filtert Zahlen aus Strings wie "240 GB frei von 500 GB" oder "1.2 TB frei von 2 TB"
+    const matches = speicherStr.match(/([\d.,]+)\s*([a-zA-Z]*)\s+frei\s+von\s+([\d.,]+)\s*([a-zA-Z]*)/);
+    if (!matches) return result;
+
+    const freeVal = parseFloat(matches[1].replace(',', '.'));
+    const freeUnit = matches[2].toLowerCase();
+    const totalVal = parseFloat(matches[3].replace(',', '.'));
+    const totalUnit = matches[4].toLowerCase();
+
+    // Alles auf Megabyte normalisieren um sauber vergleichen zu können
+    const toMB = (val, unit) => {
+        if (unit.includes('t')) return val * 1024 * 1024;
+        if (unit.includes('g')) return val * 1024;
+        if (unit.includes('m')) return val;
+        return val;
+    };
+
+    const freeMB = toMB(freeVal, freeUnit);
+    const totalMB = toMB(totalVal, totalUnit);
+    
+    if (totalMB > 0) {
+        const usedMB = totalMB - freeMB;
+        result.percentUsed = Math.max(0, Math.min(100, (usedMB / totalMB) * 100));
+        result.freeMB = freeMB;
+    }
+    return result;
+}
+
+// Handler für erkannten QR-Code im Kamera-Modus
 async function handleQRDetected(uuid) {
     if (uuid === lastUUID || isFetching) return;
     if (clearTimer) clearTimeout(clearTimer);
@@ -61,7 +98,7 @@ async function handleQRDetected(uuid) {
     const updateEl = document.getElementById('ssd-update');
 
     card.style.display = 'block';
-    card.style.borderColor = '#00ffcc';
+    card.style.borderColor = '#00663a';
     nameEl.innerText = "Verbinde mit Airtable...";
     speicherEl.innerText = "UUID erkannt: " + uuid.substring(0,8) + "...";
     ordnerEl.innerText = "Lade Ordnerstruktur...";
@@ -79,8 +116,8 @@ async function handleQRDetected(uuid) {
             speicherEl.innerText = fields.Speicher || "Keine Speicherinfo";
             ordnerEl.innerText = fields.Ordner || "(Leer)";
             updateEl.innerText = "Zuletzt aktualisiert: " + (fields.Updates || "-");
-            card.style.borderColor = '#00ff00';
-            setTimeout(() => { card.style.borderColor = '#00ffcc'; }, 600);
+            card.style.borderColor = '#00ff73';
+            setTimeout(() => { card.style.borderColor = '#00663a'; }, 600);
         } else {
             nameEl.innerText = "Unbekannte SSD";
             speicherEl.innerText = "Gescannte ID: " + uuid;
@@ -105,60 +142,102 @@ function resetClearTimer() {
     }, 6000); 
 }
 
-/* Manager Logik für Datenbank-Übersicht */
+/* Öffnet den Datenbank-Manager und lädt die Daten */
 async function openManager() {
     const overlay = document.getElementById('manager-overlay');
     const content = document.getElementById('manager-content');
     overlay.style.display = 'flex';
-    content.innerHTML = '<div style="color:#00ffcc; text-align:center; padding:20px;">Lade Airtable-Datenbank...</div>';
+    content.innerHTML = '<div style="color:#ffffff; text-align:center; padding:20px;">Lade Airtable-Datenbank...</div>';
 
     try {
         const response = await fetch(`https://api.airtable.com/v0/${baseId}/${tableName}`, {
             headers: { Authorization: `Bearer ${airtableToken}` }
         });
         const data = await response.json();
-        content.innerHTML = '';
+        
+        // Datensätze im Speicher sichern
+        databaseRecords = data.records || [];
+        
+        // Liste rendern (nutzt automatisch die eingestellte Sortierung)
+        renderManagerList();
 
-        if (data.records && data.records.length > 0) {
-            data.records.forEach(record => {
-                const f = record.fields;
-                if (!f.UUID || !f.Name) return;
-
-                const cleanFolders = f.Ordner ? f.Ordner.split('\\n').filter(Boolean).join('\n') : '(Keine Ordner vorhanden)';
-
-                const row = document.createElement('div');
-                row.className = 'ssd-row';
-                row.innerHTML = `
-                    <div class="ssd-row-header">
-                        <div class="ssd-info-block">
-                            <div class="ssd-row-title">${f.Name}</div>
-                            <div class="ssd-row-meta">Speicher: ${f.Speicher || 'Keine Info'}</div>
-                        </div>
-                        <div class="action-group">
-                            <select id="logo-select-${f.UUID}" class="logo-select">
-                                <option value="mnau_logo.svg">MNAU</option>
-                                <option value="gecko_logo.svg">Gecko</option>
-                            </select>
-                            <button class="print-btn" onclick="generateLabelPNG('${f.Name}', '${f.UUID}')">
-                                <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"/></svg>
-                                PNG
-                            </button>
-                        </div>
-                    </div>
-                    <details class="ssd-details">
-                        <summary>Ordnerstruktur einblenden</summary>
-                        <div class="ssd-folders-preview">${cleanFolders}</div>
-                    </details>
-                `;
-                content.appendChild(row);
-            });
-        } else {
-            content.innerHTML = '<div style="text-align:center; color:#a0aec0;">Keine SSDs in Airtable gefunden.</div>';
-        }
     } catch (error) {
         content.innerHTML = '<div style="text-align:center; color:#ff3333;">Fehler beim Laden von Airtable.</div>';
         console.error(error);
     }
+}
+
+/* Rendert die Liste basierend auf der ausgewählten Sortierung */
+function renderManagerList() {
+    const content = document.getElementById('manager-content');
+    const sortBy = document.getElementById('db-sort').value;
+    content.innerHTML = '';
+
+    if (databaseRecords.length === 0) {
+        content.innerHTML = '<div style="text-align:center; color:#a0aec0;">Keine SSDs in Airtable gefunden.</div>';
+        return;
+    }
+
+    // Kopie erstellen und sortieren
+    let sortedRecords = [...databaseRecords];
+    
+    if (sortBy === 'name') {
+        // Sortierung nach Alphabet (A-Z)
+        sortedRecords.sort((a, b) => (a.fields.Name || '').localeCompare(b.fields.Name || ''));
+    } else if (sortBy === 'storage') {
+        // Sortierung nach freiem Speicherplatz (Meister freier Platz zuerst)
+        sortedRecords.sort((a, b) => {
+            const storageA = parseStorageData(a.fields.Speicher);
+            const storageB = parseStorageData(b.fields.Speicher);
+            return storageB.freeMB - storageA.freeMB;
+        });
+    }
+
+    // HTML generieren
+    sortedRecords.forEach(record => {
+        const f = record.fields;
+        if (!f.UUID || !f.Name) return;
+
+        const cleanFolders = f.Ordner ? f.Ordner.split('\\n').filter(Boolean).join('\n') : '(Keine Ordner vorhanden)';
+        
+        // Ampel-Logik für den Speicherbalken ermitteln (basiert auf belegtem Platz)
+        const storageInfo = parseStorageData(f.Speicher);
+        let barColor = '#2ecc71'; // Bis 70% grün
+        if (storageInfo.percentUsed >= 90) {
+            barColor = '#e74c3c'; // Ab 90% rot
+        } else if (storageInfo.percentUsed >= 70) {
+            barColor = '#f1c40f'; // 70% bis 90% gelb
+        }
+
+        const row = document.createElement('div');
+        row.className = 'ssd-row';
+        row.innerHTML = `
+            <div class="ssd-row-header">
+                <div class="ssd-info-block">
+                    <div class="ssd-row-title">${f.Name}</div>
+                    <div class="ssd-row-meta">Speicher: ${f.Speicher || 'Keine Info'}</div>
+                    <div class="storage-bar-container">
+                        <div class="storage-bar" style="width: ${storageInfo.percentUsed}%; background-color: ${barColor};"></div>
+                    </div>
+                </div>
+                <div class="action-group">
+                    <select id="logo-select-${f.UUID}" class="logo-select">
+                        <option value="mnau_logo.svg">MNAU</option>
+                        <option value="gecko_logo.svg">Gecko</option>
+                    </select>
+                    <button class="print-btn" onclick="generateLabelPNG('${f.Name}', '${f.UUID}')">
+                        <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"/></svg>
+                        PNG
+                    </button>
+                </div>
+            </div>
+            <details class="ssd-details">
+                <summary>Ordnerstruktur einblenden</summary>
+                <div class="ssd-folders-preview">${cleanFolders}</div>
+            </details>
+        `;
+        content.appendChild(row);
+    });
 }
 
 function closeManager() {

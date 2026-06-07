@@ -44,13 +44,21 @@
 
     <div id="manager-overlay" class="manager-overlay">
         <div class="manager-header">
-            <h1>MNAU HUD Database</h1>
+            <h1>MNAU Database</h1>
+            
+            <div class="sort-group">
+                <label for="db-sort">Sortieren:</label>
+                <select id="db-sort" class="sort-select" onchange="renderManagerList()">
+                    <option value="name">Name</option>
+                    <option value="storage">Freier Speicher</option>
+                </select>
+            </div>
+            
             <button class="close-btn" onclick="closeManager()">Schließen</button>
         </div>
         <div id="manager-content" class="manager-content"></div>
     </div>
 
-    <script src="config.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
