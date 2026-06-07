@@ -3,7 +3,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>MNAU SSD AR-Scanner</title>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.4.4/build/qrcode.min.js"></script>
     
     <link rel="icon" type="image/png" href="logo.png">
@@ -124,19 +123,30 @@
         }
         .ssd-row-header {
             display: flex; justify-content: space-between; align-items: center;
+            gap: 10px;
         }
-        .ssd-info-block { flex: 1; padding-right: 15px; }
-        .ssd-row-title { font-size: 1.2rem; font-weight: bold; margin-bottom: 4px; }
+        .ssd-info-block { flex: 1; min-width: 0; }
+        .ssd-row-title { font-size: 1.2rem; font-weight: bold; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .ssd-row-meta { font-size: 0.9rem; color: #a0aec0; }
+        
+        /* Action Group & Dropdown Menu */
+        .action-group {
+            display: flex; align-items: center; gap: 8px;
+        }
+        .logo-select {
+            background: #0a111c; color: #00ffcc; border: 1px solid #00ffcc;
+            padding: 9px 8px; border-radius: 8px; font-weight: bold; outline: none;
+            cursor: pointer; font-size: 0.85rem;
+        }
         .print-btn {
             background: #00ffcc; border: none; color: #0a111c;
             padding: 10px 14px; border-radius: 8px; font-weight: bold;
             cursor: pointer; display: flex; align-items: center; gap: 6px;
-            transition: background 0.2s;
+            transition: background 0.2s; font-size: 0.85rem;
         }
         .print-btn:disabled { background: #4a5568; color: #a0aec0; }
 
-        /* NEU: Styles für das ausklappbare Ordner-Akkordeon */
+        /* Ordner-Akkordeon */
         .ssd-details {
             margin-top: 12px; padding-top: 10px;
             border-top: 1px solid rgba(0, 255, 204, 0.1);
@@ -198,8 +208,8 @@
     <script>
         // ----------------------------------------------------
         // HIER DEINE AIRTABLE DATEN EINTRAGEN!
-        const airtableToken = "pat4ytEWExJctNU62.59f8c764a353cf3d3571ea45e9d0d2e713e95a5a83499e97c5770f60850170b9";
-        const baseId = "appXKM0UQ8uJLuiNB";
+        const airtableToken = "HIER_DEINEN_PERSONAL_ACCESS_TOKEN_EINFÜGEN";
+        const baseId = "HIER_DEINE_BASE_ID_EINFÜGEN";
         const tableName = "SSDs";
         // ----------------------------------------------------
 
@@ -322,7 +332,6 @@
                         const f = record.fields;
                         if (!f.UUID || !f.Name) return;
 
-                        // Ordnerstruktur für die Anzeige aufbereiten (echte Zeilenumbrüche wiederherstellen)
                         const cleanFolders = f.Ordner ? f.Ordner.split('\\n').filter(Boolean).join('\n') : '(Keine Ordner vorhanden)';
 
                         const row = document.createElement('div');
@@ -333,10 +342,16 @@
                                     <div class="ssd-row-title">${f.Name}</div>
                                     <div class="ssd-row-meta">Speicher: ${f.Speicher || 'Keine Info'}</div>
                                 </div>
-                                <button class="print-btn" onclick="generateLabelPDF('${f.Name}', '${f.UUID}')">
-                                    <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"/></svg>
-                                    Label
-                                </button>
+                                <div class="action-group">
+                                    <select id="logo-select-${f.UUID}" class="logo-select">
+                                        <option value="mnau_logo.svg">MNAU</option>
+                                        <option value="gecko_logo.svg">Gecko</option>
+                                    </select>
+                                    <button class="print-btn" onclick="generateLabelPNG('${f.Name}', '${f.UUID}')">
+                                        <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"/></svg>
+                                        PNG
+                                    </button>
+                                </div>
                             </div>
                             <details class="ssd-details">
                                 <summary>Ordnerstruktur einblenden</summary>
@@ -349,7 +364,7 @@
                     content.innerHTML = '<div style="text-align:center; color:#a0aec0;">Keine SSDs in Airtable gefunden.</div>';
                 }
             } catch (error) {
-                content.innerHTML = '<div style="color:#ff3333; text-align:center;">Fehler beim Laden von Airtable.</div>';
+                content.innerHTML = '<div style="text-align:center; color:#ff3333;">Fehler beim Laden von Airtable.</div>';
                 console.error(error);
             }
         }
@@ -358,37 +373,57 @@
             document.getElementById('manager-overlay').style.display = 'none';
         }
 
-        /* PDF Etiketten-Generator (15mm x 50mm) - KORRIGIERT: Ohne UUID-Klartext */
-        async function generateLabelPDF(name, uuid) {
+        /* NEU: HTML5 Off-Screen Canvas Label Generator (Ausgabe: PNG) */
+        async function generateLabelPNG(name, uuid) {
             try {
-                const { jsPDF } = window.jspdf;
-                const qrDataUrl = await QRCode.toDataURL(uuid, { margin: 1, width: 200 });
+                // Den ausgewählten Logo-Pfad für diese spezifische Zeile holen
+                const selectedLogoFile = document.getElementById(`logo-select-${uuid}`).value;
 
-                // Label: 15mm breit, 50mm lang
-                const doc = new jsPDF({
-                    orientation: 'portrait',
-                    unit: 'mm',
-                    format: [15, 50]
+                // QR-Code generieren (300px für gestochen scharfe Qualität)
+                const qrDataUrl = await QRCode.toDataURL(uuid, { margin: 1, width: 300 });
+
+                // Virtueller Canvas mit exakter 15:50 Proportional-Auflösung (300px x 1000px)
+                const labelCanvas = document.createElement('canvas');
+                labelCanvas.width = 300;
+                labelCanvas.height = 1000;
+                const lCtx = labelCanvas.getContext('2d');
+
+                // 1. Reiner weißer Etiketten-Hintergrund
+                lCtx.fillStyle = '#ffffff';
+                lCtx.fillRect(0, 0, 300, 1000);
+
+                // 2. Ausgewähltes SVG-Logo laden und zeichnen (MNAU oder Gecko)
+                const logoImg = new Image();
+                logoImg.src = selectedLogoFile;
+                await new Promise((resolve, reject) => {
+                    logoImg.onload = resolve;
+                    logoImg.onerror = () => reject(new Error(`Logo ${selectedLogoFile} konnte nicht geladen werden.`));
                 });
+                // Entspricht exakt 13mm Breite zentriert im oberen Bereich (Y: 40px bis 300px)
+                lCtx.drawImage(logoImg, 20, 40, 260, 260);
 
-                // 1. Firmenlogo ganz oben (Breite/Höhe 13mm zentriert)
-                doc.addImage('logo.png', 'PNG', 1, 2, 13, 13);
+                // 3. SSD-Name als Text platzieren
+                lCtx.fillStyle = '#000000';
+                lCtx.font = 'bold 26px -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif';
+                lCtx.textAlign = 'center';
+                lCtx.fillText(name, 150, 365);
 
-                // 2. SSD-Name als Text direkt darunter zur schnellen Orientierung
-                doc.setFont("Helvetica", "bold");
-                doc.setFontSize(5);
-                doc.text(name, 7.5, 18, { align: "center" });
+                // 4. QR-Code laden und im unteren Bereich aufzeichnen (Y: 420px bis 680px)
+                const qrImg = new Image();
+                qrImg.src = qrDataUrl;
+                await new Promise((resolve) => qrImg.onload = resolve);
+                lCtx.drawImage(qrImg, 20, 420, 260, 260);
 
-                // 3. QR-Code (enthält die UUID für die Kamera-Erkennung)
-                doc.addImage(qrDataUrl, 'JPEG', 1, 21, 13, 13);
+                // HINWEIS: UUID-Klartext wurde wie gewünscht weggelassen!
 
-                // HINWEIS: Der UUID-Klartext am unteren Ende wurde komplett entfernt!
-
-                // Download ausführen
-                doc.save(`MNAU_Label_${name.replace(/\s+/g, '_')}.pdf`);
+                // 5. Automatischen PNG-Bild-Download triggern
+                const downloadLink = document.createElement('a');
+                downloadLink.download = `Label_${name.replace(/\s+/g, '_')}.png`;
+                downloadLink.href = labelCanvas.toDataURL('image/png');
+                downloadLink.click();
 
             } catch (err) {
-                alert("Fehler beim Generieren des PDFs. Prüfe, ob logo.png auf GitHub liegt.");
+                alert("Fehler beim Erstellen des PNG-Labels. Vergewissere dich, dass mnau_logo.svg und gecko_logo.svg im Stammordner auf GitHub liegen.");
                 console.error(err);
             }
         }
