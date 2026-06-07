@@ -31,7 +31,20 @@ const cameraConstraints = {
 // GLOBAL HELPERS
 // ====================================================
 
-/* Hilfsfunktion: Berechnet Speicher-Prozentwerte */
+/* REPARIERT: Bereinigt kryptische Einheiten wie 'Ti'/'Gi' in allgemein gängige Kürzel ('TB'/'GB') */
+function cleanStorageUnits(speicherStr) {
+    if (!speicherStr) return "Keine Info";
+    return speicherStr
+        .replace(/TiB?/g, 'TB')
+        .replace(/GiB?/g, 'GB')
+        .replace(/MiB?/g, 'MB')
+        .replace(/KiB?/g, 'KB')
+        .replace(/\bT\b/g, 'TB')
+        .replace(/\bG\b/g, 'GB')
+        .replace(/\bM\b/g, 'MB');
+}
+
+/* Hilfsfunktion: Berechnet Speicher-Prozentwerte für den Fortschrittsbalken */
 function parseStorageData(speicherStr) {
     const result = { percentUsed: 0, freeMB: 0 };
     if (!speicherStr) return result;
@@ -62,7 +75,7 @@ function parseStorageData(speicherStr) {
     return result;
 }
 
-/* Ordner-Parser: Erstellt saubere UI-Chips inklusive zeitlich kaskadierender Einblende-Animation */
+/* Ordner-Parser: Erstellt saubere UI-Chips inklusive kaskadierender Einblende-Animation */
 function generateFolderHTML(ordnerStr, company) {
     if (!ordnerStr || ordnerStr.trim() === "" || ordnerStr.includes("(Leer)")) {
         return '<div class="no-folders">Keine Ordner vorhanden</div>';
@@ -73,7 +86,6 @@ function generateFolderHTML(ordnerStr, company) {
     
     const iconColor = company === "Gecko" ? "#29ABE2" : "#00663a";
     
-    // Injiziert inline ein mathematisch gesteigertes animation-delay pro Ordner-Chip
     return folderArray.map((folder, index) => `
         <div class="folder-item" style="animation-delay: ${index * 0.04}s;">
             <svg class="folder-icon" style="fill: ${iconColor};" viewBox="0 0 24 24">
@@ -110,7 +122,7 @@ async function fetchDatabase() {
 }
 
 /* Rendert die Liste basierend auf Sortierung UND Suchbegriff */
-function renderManagerList() {
+function renderManagerList(movedRecordId = null) {
     const content = document.getElementById('manager-content');
     const sortBy = document.getElementById('db-sort').value;
     const searchTerm = document.getElementById('db-search').value.toLowerCase().trim();
@@ -149,7 +161,6 @@ function renderManagerList() {
 
     let lastCompanySeen = null;
 
-    // Nutzt den Loop-Index, um jeder Zeile ein gestaffeltes Einblende-Delay mitzugeben
     processedRecords.forEach((record, index) => {
         const f = record.fields;
         if (!f.UUID || !f.Name) return;
@@ -173,20 +184,31 @@ function renderManagerList() {
 
         const row = document.createElement('div');
         row.className = `ssd-row ${brandClass}`;
-        // Der magische Stagger-Effekt für CSS
-        row.style.animationDelay = `${index * 0.04}s`;
+        
+        // REPARIERT: Kontrollierter Einfliege-Effekt (Verhindert Ruckeln beim Durchreichen)
+        if (movedRecordId) {
+            if (record.id === movedRecordId) {
+                row.style.animation = 'rowFadeIn 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.2) forwards';
+            } else {
+                row.style.animation = 'none';
+                row.style.opacity = '1';
+                row.style.transform = 'translateY(0)';
+            }
+        } else {
+            row.style.animationDelay = `${index * 0.04}s`;
+        }
         
         row.innerHTML = `
             <div class="ssd-row-header">
                 <div class="ssd-info-block">
                     <div class="ssd-row-title">${f.Name}</div>
-                    <div class="ssd-row-meta">Speicher: ${f.Speicher || 'Keine Info'}</div>
+                    <div class="ssd-row-meta">Speicher: ${cleanStorageUnits(f.Speicher)}</div>
                     <div class="storage-bar-container">
                         <div class="storage-bar" style="width: ${storageInfo.percentUsed}%; background-color: ${barColor};"></div>
                     </div>
                 </div>
                 <div class="action-group">
-                    <select id="logo-select-${f.UUID}" class="logo-select" onchange="updateCompanyField('${record.id}', this.value)">
+                    <select id="logo-select-${f.UUID}" class="logo-select" onchange="updateCompanyField('${record.id}', this.value, this)">
                         <option value="MNAU" ${currentFirma === 'MNAU' ? 'selected' : ''}>MNAU</option>
                         <option value="Gecko" ${currentFirma === 'Gecko' ? 'selected' : ''}>Gecko</option>
                     </select>
@@ -205,34 +227,52 @@ function renderManagerList() {
     });
 }
 
-/* LIVE-UPDATE AN AIRTABLE: Wird getriggert, wenn das Firmen-Dropdown geändert wird */
-async function updateCompanyField(recordId, newFirma) {
+/* LIVE-UPDATE AN AIRTABLE: Mit hocheleganten Inline-Zusammenstauchungs-Effekt */
+async function updateCompanyField(recordId, newFirma, selectElement) {
     try {
-        const response = await fetch(`https://api.airtable.com/v0/${baseId}/${tableName}/${recordId}`, {
+        // Findet die genaue Zeile im Browser-Fenster
+        const rowElement = selectElement.closest('.ssd-row');
+        if (rowElement) {
+            // Fährt die alte Zeile weich auf 0-Größe herunter und schiebt sie optisch weg
+            rowElement.style.transition = 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+            rowElement.style.opacity = '0';
+            rowElement.style.transform = 'translateY(25px) scale(0.95)';
+            rowElement.style.maxHeight = '0px';
+            rowElement.style.marginBottom = '0px';
+            rowElement.style.paddingTop = '0px';
+            rowElement.style.paddingBottom = '0px';
+            rowElement.style.overflow = 'hidden';
+        }
+
+        // Parallel läuft die API-Anfrage im Hintergrund weiter (Keine Wartezeit für den Nutzer!)
+        fetch(`https://api.airtable.com/v0/${baseId}/${tableName}/${recordId}`, {
             method: "PATCH",
             headers: {
                 "Authorization": `Bearer ${airtableToken}`,
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({ fields: { "Firma": newFirma } })
+        }).then(response => {
+            if (!response.ok) console.error("Airtable-Hintergrundsync fehlgeschlagen.");
         });
 
-        if (!response.ok) throw new Error("Airtable-Update fehlgeschlagen.");
+        // Sobald die Zusammenstauchung fertig ist (400ms), ordnen wir die Liste im Speicher neu an
+        setTimeout(() => {
+            const localRecord = databaseRecords.find(r => r.id === recordId);
+            if (localRecord) localRecord.fields.Firma = newFirma;
+            
+            // Rendert die Liste neu und übergibt die ID, damit NUR diese Zeile am neuen Ort auffedert
+            renderManagerList(recordId);
+        }, 400);
 
-        const localRecord = databaseRecords.find(r => r.id === recordId);
-        if (localRecord) localRecord.fields.Firma = newFirma;
-        
-        renderManagerList();
     } catch (error) {
-        alert("Fehler beim Speichern der Firma in Airtable.");
         console.error(error);
     }
 }
 
-/* STARTET DIE KAMERA UND AKTIVIERT DIE TRANSITION */
+/* STARTET DIE KAMERA */
 function openScanner() {
-    const overlay = document.getElementById('scanner-overlay');
-    overlay.classList.add('active'); // Startet den weichen CSS-Vollbild-Fade
+    document.getElementById('scanner-overlay').classList.add('active');
     isScannerActive = true;
     lastUUID = "";
 
@@ -259,7 +299,7 @@ function openScanner() {
         });
 }
 
-/* STOPPT DIE KAMERA VIA HARDWARE-COMMAND UND SCHLIEẞT DAS OVERLAY */
+/* STOPPT DIE KAMERA VIA HARDWARE-COMMAND */
 function closeScanner() {
     isScannerActive = false;
     document.getElementById('scanner-overlay').classList.remove('active');
@@ -311,7 +351,7 @@ async function handleQRDetected(uuid) {
     const ordnerEl = document.getElementById('ssd-ordner');
     const updateEl = document.getElementById('ssd-update');
 
-    card.classList.add('active'); // Schießt das solide UI-Panel von unten hoch!
+    card.classList.add('active'); 
     card.style.borderColor = '#00663a';
     nameEl.innerText = "Verbinde mit Airtable...";
     speicherEl.innerText = "UUID erkannt: " + uuid.substring(0,8) + "...";
@@ -330,7 +370,8 @@ async function handleQRDetected(uuid) {
             const brandColor = company === "Gecko" ? "#29ABE2" : "#00663a";
 
             nameEl.innerText = fields.Name || "Unbenannte SSD";
-            speicherEl.innerText = fields.Speicher || "Keine Speicherinfo";
+            // REPARIERT: Auch hier in der AR-Kameraansicht werden die gereinigten Einheiten ausgespuckt!
+            speicherEl.innerText = cleanStorageUnits(fields.Speicher);
             ordnerEl.innerHTML = generateFolderHTML(fields.Ordner, company);
             updateEl.innerText = "Zuletzt aktualisiert: " + (fields.Updates || "-");
             card.style.borderColor = brandColor;
@@ -352,7 +393,7 @@ async function handleQRDetected(uuid) {
 function resetClearTimer() {
     if (clearTimer) clearTimeout(clearTimer);
     clearTimer = setTimeout(() => {
-        document.getElementById('ar-card').classList.remove('active'); // Zieht das Panel elastisch ab
+        document.getElementById('ar-card').classList.remove('active'); 
         lastUUID = "";
     }, 6000); 
 }
