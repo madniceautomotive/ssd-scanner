@@ -273,7 +273,7 @@ function renderManagerList() {
         return;
     }
 
-    // GEWINNBRINGENDER HELPER: Sortiert Firmen strikt vor (MNAU = -1, Gecko = 1)
+    // Sortiert Firmen strikt vor (MNAU = -1, Gecko = 1)
     const companyComparator = (a, b) => {
         const firmaA = a.fields.Firma || 'MNAU';
         const firmaB = b.fields.Firma || 'MNAU';
@@ -287,18 +287,21 @@ function renderManagerList() {
     if (sortBy === 'name') {
         processedRecords.sort((a, b) => {
             const cComp = companyComparator(a, b);
-            if (cComp !== 0) return cComp; // Wenn ungleiche Firmen, entscheidet die Firmen-Prio
-            return (a.fields.Name || '').localeCompare(b.fields.Name || '');
+            if (cComp !== 0) return cComp;
+            return (a.fields.Name || '').localeCompare(b.fields.Name || ' ');
         });
     } else if (sortBy === 'storage') {
         processedRecords.sort((a, b) => {
             const cComp = companyComparator(a, b);
-            if (cComp !== 0) return cComp; // Wenn ungleiche Firmen, entscheidet die Firmen-Prio
+            if (cComp !== 0) return cComp;
             const storageA = parseStorageData(a.fields.Speicher);
             const storageB = parseStorageData(b.fields.Speicher);
             return storageB.freeMB - storageA.freeMB;
         });
     }
+
+    // Tracker für den physischen Trenner
+    let lastCompanySeen = null;
 
     // 3. HTML GENERIEREN
     processedRecords.forEach(record => {
@@ -308,7 +311,15 @@ function renderManagerList() {
         const cleanFolders = f.Ordner ? f.Ordner.split('\\n').filter(Boolean).join('\n') : '(Keine Ordner vorhanden)';
         const currentFirma = f.Firma || "MNAU";
 
-        // Brand-Klasse für CSS-Anpassungen ermitteln
+        // INTELLIGENTER TRENNER: Wird injiziert, sobald ein neuer Firmenblock beginnt
+        if (currentFirma !== lastCompanySeen) {
+            const divider = document.createElement('div');
+            divider.className = `section-divider ${currentFirma.toLowerCase()}-divider`;
+            divider.innerHTML = `<span>${currentFirma} STORAGE UNITS</span>`;
+            content.appendChild(divider);
+            lastCompanySeen = currentFirma;
+        }
+
         const brandClass = currentFirma === "Gecko" ? "gecko-brand" : "mnau-brand";
 
         const storageInfo = parseStorageData(f.Speicher);
