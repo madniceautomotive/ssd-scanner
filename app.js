@@ -4,7 +4,10 @@ const ctx = canvas.getContext('2d');
 let lastUUID = "";
 let isFetching = false;
 let clearTimer = null;
-let databaseRecords = []; // Lokaler Zwischenspeicher für die Sortierung und Suche
+let databaseRecords = []; // Lokaler Zwischenspeicher für Sortierung/Suche
+
+let cameraStream = null;      // Hält den aktiven Video-Stream
+let isScannerActive = false;   // Flag zur Steuerung des Render-Loops
 
 // ----------------------------------------------------
 // AIRTABLE ACCESS CONFIGURATION (Sicher im privaten Repository)
@@ -13,7 +16,7 @@ const baseId = "appXKM0UQ8uJLuiNB";
 const tableName = "SSDs";
 // ----------------------------------------------------
 
-// OPTIMIERTE KAMERA-ZWÄNGE: Full HD erzwingen für maximale Schärfe aus der Distanz
+// Full-HD Kameraeinstellungen für scharfes Scannen aus der Distanz
 const cameraConstraints = {
     video: {
         facingMode: "environment",
@@ -21,36 +24,84 @@ const cameraConstraints = {
         height: { ideal: 1080 },
         frameRate: { ideal: 30 }
     },
-    audio: false // Spart Performance und Berechtigungs-Abfragen
+    audio: false
 };
 
-// Kamera-Feed mit optimierten Einstellungen initialisieren
-navigator.mediaDevices.getUserMedia(cameraConstraints)
-    .then(function(stream) {
-        video.srcObject = stream;
-        video.setAttribute("playsinline", true);
-        video.play();
-        document.getElementById('loading-overlay').style.display = 'none';
-        requestAnimationFrame(tick);
-    })
-    .catch(function(err) {
-        // Fallback, falls Full HD vom Gerät absolut nicht unterstützt wird
-        console.warn("Full HD nicht unterstützt, starte Standard-Kamera...", err);
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-            .then(function(stream) {
-                video.srcObject = stream;
-                video.play();
-                document.getElementById('loading-overlay').style.display = 'none';
-                requestAnimationFrame(tick);
-            })
-            .catch(function(fallbackErr) {
-                document.getElementById('loading-overlay').innerText = "Kamerazugriff verweigert oder nicht unterstützt.";
-                console.error(fallbackErr);
-            });
-    });
+// AUTOMATISCHER START: Beim Laden der Seite sofort die Datenbank aufrufen
+document.addEventListener("DOMContentLoaded", () => {
+    fetchDatabase();
+});
 
-// QR-Code Live-Scan-Schleife
+/* Lädt die gesamte Airtable-Datenbank für die Listenansicht */
+async function fetchDatabase() {
+    try {
+        const response = await fetch(`https://api.airtable.com/v0/${baseId}/${tableName}`, {
+            headers: { Authorization: `Bearer ${airtableToken}` }
+        });
+        const data = await response.json();
+        databaseRecords = data.records || [];
+        
+        // Liste initial rendern
+        renderManagerList();
+        
+        // Lade-Overlay entfernen
+        document.getElementById('loading-overlay').style.display = 'none';
+    } catch (error) {
+        document.getElementById('loading-overlay').innerText = "Fehler beim Laden der Airtable-Datenbank.";
+        console.error(error);
+    }
+}
+
+/* STARTET DIE KAMERA: Wird aufgerufen, wenn der Scanner geöffnet wird */
+function openScanner() {
+    document.getElementById('scanner-overlay').style.display = 'block';
+    isScannerActive = true;
+    lastUUID = "";
+
+    navigator.mediaDevices.getUserMedia(cameraConstraints)
+        .then(function(stream) {
+            cameraStream = stream;
+            video.srcObject = stream;
+            video.setAttribute("playsinline", true);
+            video.play();
+            requestAnimationFrame(tick); // QR-Code Loop starten
+        })
+        .catch(function(err) {
+            console.warn("Full HD nicht unterstützt, Fallback auf Standard-Kamera...", err);
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+                .then(function(stream) {
+                    cameraStream = stream;
+                    video.srcObject = stream;
+                    video.play();
+                    requestAnimationFrame(tick);
+                })
+                .catch(function(fallbackErr) {
+                    alert("Kamerazugriff verweigert.");
+                    console.error(fallbackErr);
+                    closeScanner();
+                });
+        });
+}
+
+/* STOPPT DIE KAMERA: Schaltet die Linsen aus und leert den Speicher */
+function closeScanner() {
+    isScannerActive = false;
+    document.getElementById('scanner-overlay').style.display = 'none';
+    document.getElementById('ar-card').style.display = 'none';
+
+    if (cameraStream) {
+        // Schaltet jede einzelne Linse/Spur am Smartphone physikalisch ab (Licht geht aus)
+        cameraStream.getTracks().forEach(track => track.stop());
+        cameraStream = null;
+    }
+    video.srcObject = null;
+    lastUUID = "";
+}
+
+// QR-Code Live-Scan-Schleife (läuft nur, wenn Scanner aktiv ist)
 function tick() {
+    if (!isScannerActive) return; // Schleife abbrechen, falls Scanner geschlossen wurde
+
     if (video.readyState === video.HAVE_ENOUGH_DATA) {
         canvas.height = video.videoHeight;
         canvas.width = video.videoWidth;
@@ -71,37 +122,6 @@ function tick() {
         }
     }
     requestAnimationFrame(tick);
-}
-
-// Hilfsfunktion: Berechnet Speicher-Prozentwerte und extrahiert MB für die Sortierung
-function parseStorageData(speicherStr) {
-    const result = { percentUsed: 0, freeMB: 0 };
-    if (!speicherStr) return result;
-
-    const matches = speicherStr.match(/([\d.,]+)\s*([a-zA-Z]*)\s+frei\s+von\s+([\d.,]+)\s*([a-zA-Z]*)/);
-    if (!matches) return result;
-
-    const freeVal = parseFloat(matches[1].replace(',', '.'));
-    const freeUnit = matches[2].toLowerCase();
-    const totalVal = parseFloat(matches[3].replace(',', '.'));
-    const totalUnit = matches[4].toLowerCase();
-
-    const toMB = (val, unit) => {
-        if (unit.includes('t')) return val * 1024 * 1024;
-        if (unit.includes('g')) return val * 1024;
-        if (unit.includes('m')) return val;
-        return val;
-    };
-
-    const freeMB = toMB(freeVal, freeUnit);
-    const totalMB = toMB(totalVal, totalUnit);
-    
-    if (totalMB > 0) {
-        const usedMB = totalMB - freeMB;
-        result.percentUsed = Math.max(0, Math.min(100, (usedMB / totalMB) * 100));
-        result.freeMB = freeMB;
-    }
-    return result;
 }
 
 // Handler für erkannten QR-Code im Kamera-Modus
@@ -162,31 +182,35 @@ function resetClearTimer() {
     }, 6000); 
 }
 
-/* Öffnet den Datenbank-Manager und lädt die Daten */
-async function openManager() {
-    const overlay = document.getElementById('manager-overlay');
-    const content = document.getElementById('manager-content');
-    overlay.style.display = 'flex';
-    content.innerHTML = '<div style="color:#ffffff; text-align:center; padding:20px;">Lade Airtable-Datenbank...</div>';
+// Hilfsfunktion: Berechnet Speicher-Prozentwerte und extrahiert MB für die Sortierung
+function parseStorageData(speicherStr) {
+    const result = { percentUsed: 0, freeMB: 0 };
+    if (!speicherStr) return result;
 
-    try {
-        const response = await fetch(`https://api.airtable.com/v0/${baseId}/${tableName}`, {
-            headers: { Authorization: `Bearer ${airtableToken}` }
-        });
-        const data = await response.json();
-        
-        databaseRecords = data.records || [];
-        
-        if (document.getElementById('db-search')) {
-            document.getElementById('db-search').value = '';
-        }
-        
-        renderManagerList();
+    const matches = speicherStr.match(/([\d.,]+)\s*([a-zA-Z]*)\s+frei\s+von\s+([\d.,]+)\s*([a-zA-Z]*)/);
+    if (!matches) return result;
 
-    } catch (error) {
-        content.innerHTML = '<div style="text-align:center; color:#ff3333;">Fehler beim Laden von Airtable.</div>';
-        console.error(error);
+    const freeVal = parseFloat(matches[1].replace(',', '.'));
+    const freeUnit = matches[2].toLowerCase();
+    const totalVal = parseFloat(matches[3].replace(',', '.'));
+    const totalUnit = matches[4].toLowerCase();
+
+    const toMB = (val, unit) => {
+        if (unit.includes('t')) return val * 1024 * 1024;
+        if (unit.includes('g')) return val * 1024;
+        if (unit.includes('m')) return val;
+        return val;
+    };
+
+    const freeMB = toMB(freeVal, freeUnit);
+    const totalMB = toMB(totalVal, totalUnit);
+    
+    if (totalMB > 0) {
+        const usedMB = totalMB - freeMB;
+        result.percentUsed = Math.max(0, Math.min(100, (usedMB / totalMB) * 100));
+        result.freeMB = freeMB;
     }
+    return result;
 }
 
 /* Rendert die Liste basierend auf Sortierung UND Suchbegriff */
@@ -197,10 +221,11 @@ function renderManagerList() {
     content.innerHTML = '';
 
     if (databaseRecords.length === 0) {
-        content.innerHTML = '<div style="text-align:center; color:#a0aec0;">Keine SSDs in Airtable gefunden.</div>';
+        content.innerHTML = '<div style="text-align:center; color:#a0aec0; padding:20px;">Keine SSDs in Airtable gefunden.</div>';
         return;
     }
 
+    // 1. FILTERN nach Suchbegriff
     let processedRecords = databaseRecords.filter(record => {
         const f = record.fields;
         const name = (f.Name || '').toLowerCase();
@@ -214,6 +239,7 @@ function renderManagerList() {
         return;
     }
 
+    // 2. SORTIEREN der gefilterten Ergebnisse
     if (sortBy === 'name') {
         processedRecords.sort((a, b) => (a.fields.Name || '').localeCompare(b.fields.Name || ''));
     } else if (sortBy === 'storage') {
@@ -224,6 +250,7 @@ function renderManagerList() {
         });
     }
 
+    // 3. HTML GENERIEREN
     processedRecords.forEach(record => {
         const f = record.fields;
         if (!f.UUID || !f.Name) return;
@@ -267,11 +294,6 @@ function renderManagerList() {
         `;
         content.appendChild(row);
     });
-}
-
-function closeManager() {
-    document.getElementById('manager-overlay').style.none = 'none';
-    document.getElementById('manager-overlay').style.display = 'none';
 }
 
 /* HTML5 Off-Screen Canvas Label Generator - MIT SMARTEM WORT-UMBRUCH */

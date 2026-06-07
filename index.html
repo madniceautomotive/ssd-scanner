@@ -21,29 +21,8 @@
         MNAU HUD wird geladen...
     </div>
 
-    <video id="video" playsinline></video>
-    <canvas id="canvas" style="display:none;"></canvas>
-
-    <div class="scan-container">
-        <div class="scan-region"></div>
-        
-        <div id="ar-card" class="ar-card">
-            <h2 id="ssd-name">-</h2>
-            <div id="ssd-speicher" class="speicher-info">-</div>
-            <div class="folder-title">Hauptordner:</div>
-            <div id="ssd-ordner" class="folder-list">-</div>
-            <div id="ssd-update" class="update-time">-</div>
-        </div>
-    </div>
-
-    <div class="fab" onclick="openManager()">
-        <svg viewBox="0 0 24 24">
-            <path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/>
-        </svg>
-    </div>
-
-    <div id="manager-overlay" class="manager-overlay">
-        <div class="manager-header">
+    <div id="database-view">
+        <div class="database-header">
             <h1>MNAU Database</h1>
             
             <div class="search-group">
@@ -57,10 +36,34 @@
                     <option value="storage">Freier Speicher</option>
                 </select>
             </div>
-            
-            <button class="close-btn" onclick="closeManager()">Schließen</button>
         </div>
+        
         <div id="manager-content" class="manager-content"></div>
+    </div>
+
+    <div class="fab-camera-trigger" onclick="openScanner()" title="QR-Scanner starten">
+        <svg viewBox="0 0 24 24">
+            <path d="M4 4h3l2-2h6l2 2h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm8 3a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6z"/>
+        </svg>
+    </div>
+
+    <div id="scanner-overlay">
+        <button class="close-scanner-btn" onclick="closeScanner()">Scanner Schließen</button>
+
+        <video id="video" playsinline></video>
+        <canvas id="canvas" style="display:none;"></canvas>
+
+        <div class="scan-container">
+            <div class="scan-region"></div>
+            
+            <div id="ar-card" class="ar-card">
+                <h2 id="ssd-name">-</h2>
+                <div id="ssd-speicher" class="speicher-info">-</div>
+                <div class="folder-title">Hauptordner:</div>
+                <div id="ssd-ordner" class="folder-list">-</div>
+                <div id="ssd-update" class="update-time">-</div>
+            </div>
+        </div>
     </div>
 
     <script src="app.js"></script>
