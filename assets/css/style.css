@@ -28,7 +28,6 @@ body, html {
     -webkit-background-clip: text; -webkit-text-fill-color: transparent;
 }
 
-/* Die neue kompakte Kontrollzeile (Side-by-Side) */
 .header-controls-row {
     display: flex; width: 100%; gap: 10px; align-items: center;
 }
@@ -45,7 +44,6 @@ body, html {
     border-color: #00ff73; box-shadow: 0 0 12px rgba(0, 255, 115, 0.15);
 }
 
-/* Das interaktive Such-Löschkreuz */
 .search-clear-btn {
     position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
     background: none; border: none; padding: 0; cursor: pointer;
@@ -92,7 +90,6 @@ body, html {
     color: #00ff73; font-weight: bold; background: rgba(0, 102, 58, 0.15);
 }
 
-/* Standard Dropdown Selektoren & Ausrichtung */
 .sort-select, .logo-select {
     -webkit-appearance: none; -moz-appearance: none; appearance: none;
     background: #1c1c1c; color: white; border: 1px solid rgba(0, 102, 58, 0.5);
@@ -138,7 +135,6 @@ body, html {
 .alloc-input { width: 110px !important; text-align: center; }
 .alloc-unit { width: 85px !important; }
 
-/* Speicher-Allokations-Ergebnisbox */
 .suggestion-box {
     background: rgba(0, 102, 58, 0.03); border: 1px dashed rgba(0, 102, 58, 0.4);
     border-radius: 12px; padding: 16px 20px; margin-bottom: 20px; font-size: 0.9rem; line-height: 1.6; color: #e2e8f0;
@@ -173,7 +169,6 @@ body, html {
 .storage-bar-container { width: 100%; height: 6px; background: rgba(255, 255, 255, 0.08); border-radius: 3px; margin-top: 8px; overflow: hidden; }
 .storage-bar { height: 100%; width: 0%; transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s; }
 
-/* Action Buttons & Badges */
 .action-group { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .print-btn {
     background: #00663a; border: none; color: white; padding: 10px 14px; border-radius: 8px; font-weight: bold;
@@ -199,7 +194,6 @@ body, html {
 }
 .delete-btn:active { transform: scale(0.92); }
 
-/* RESPONSIVE DESIGN BREAKPOINTS */
 @media (max-width: 580px) {
     .ssd-row-header { flex-direction: column; align-items: stretch; gap: 14px; }
     .action-group { justify-content: space-between; width: 100%; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 12px; }
@@ -224,7 +218,6 @@ body, html {
 .folder-name { font-size: 0.85rem; color: #e2e8f0; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .no-folders { font-size: 0.82rem; color: #718096; font-style: italic; padding: 4px; }
 
-/* Utilities & Formats */
 .sort-select { display: none !important; }
 .alloc-unit { display: block !important; }
 
@@ -247,7 +240,6 @@ body, html {
 .ar-card.active { transform: translate(-50%, 0); opacity: 1; }
 .update-time { font-size: 0.72rem; color: #a0aec0; text-align: right; margin-top: 22px; border-top: 1px dashed rgba(255, 255, 255, 0.08); padding-top: 10px; }
 
-/* Minimalist Circular Cross Close Button */
 .close-scanner-btn {
     position: absolute; top: 24px; right: 24px; z-index: 15;
     background: rgba(20, 20, 20, 0.8); border: 1px solid rgba(0, 255, 115, 0.4);
@@ -260,12 +252,11 @@ body, html {
 .close-scanner-btn:hover svg { fill: #ffffff; transform: rotate(90deg); }
 .close-scanner-btn:active { transform: scale(0.9); }
 
-/* System Boot Loading Screens */
 #loading-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #121212; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #ffffff; font-size: 1.2rem; }
 .spinner { width: 40px; height: 40px; border: 4px solid rgba(0, 102, 58, 0.2); border-top-color: #00663a; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* Section Separators */
+/* Brand Dividers */
 .section-divider { display: flex; align-items: center; margin: 30px 0 16px 0; font-size: 0.72rem; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; user-select: none; will-change: transform; }
 .section-divider::before { content: '// '; margin-right: 6px; font-weight: 900; }
 .section-divider::after { content: ''; flex: 1; height: 1px; margin-left: 14px; }
@@ -275,7 +266,7 @@ body, html {
 .section-divider.gecko-divider::after { background: linear-gradient(to right, rgba(41, 171, 226, 0.8), transparent); }
 
 /* ==================================================== */
-/* 8. GECKO BRAND OVERRIDES & Cyan HIGHLIGHTS            */
+/* 8. GECKO BRAND OVERRIDES & CYAN HIGHLIGHTS            */
 /* ==================================================== */
 .ssd-row.gecko-brand { border-left-color: #29ABE2; }
 .ssd-row.gecko-brand .logo-select { border-color: #29ABE2; }
@@ -299,7 +290,6 @@ body, html {
     animation: folderChipIn 0.3s ease forwards, neonPulse 1.8s infinite ease-in-out !important;
 }
 
-/* Spezifische Injektion für MNAU (Waldgrün + Grüne Aura) */
 .ssd-row.mnau-brand .folder-item.highlighted-folder {
     --glow-color: rgba(0, 255, 115, 0.6);
     background: #00663a !important;
@@ -310,7 +300,6 @@ body, html {
     font-weight: bold !important;
 }
 
-/* Spezifische Injektion für GECKO (Cyan + Dunkle Schrift für extremen Kontrast) */
 .ssd-row.gecko-brand .folder-item.highlighted-folder {
     --glow-color: rgba(41, 171, 226, 0.6);
     background: #29ABE2 !important;
@@ -319,4 +308,19 @@ body, html {
 .ssd-row.gecko-brand .folder-item.highlighted-folder .folder-name {
     color: #121212 !important;
     font-weight: bold !important;
+}
+
+/* ==================================================== */
+/* 10. REFRESH BUTTON SPIN KEYFRAMES                    */
+/* ==================================================== */
+@keyframes hudRefreshSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+.sort-icon-btn.spinning {
+    border-color: #00ff73 !important; color: #00ff73 !important;
+    box-shadow: 0 0 12px rgba(0, 255, 115, 0.2);
+}
+.sort-icon-btn.spinning svg {
+    animation: hudRefreshSpin 0.85s linear infinite;
 }

@@ -8,7 +8,7 @@ const ctx = canvas.getContext('2d');
 let lastUUID = "";
 let isFetching = false;
 let clearTimer = null;
-let databaseRecords = []; // Lokaler Zwischenspeicher für Sortierung/Suche
+let databaseRecords = [];
 
 let cameraStream = null;
 let isScannerActive = false;
@@ -83,6 +83,20 @@ function clearSearch() {
     }
 }
 
+/* Manueller Refresh-Trigger mit visueller CSS-Rotations-Injektion */
+async function manualRefresh() {
+    const refreshBtn = document.getElementById('db-refresh-btn');
+    if (refreshBtn) refreshBtn.classList.add('spinning');
+
+    await fetchDatabase();
+
+    if (refreshBtn) {
+        setTimeout(() => {
+            refreshBtn.classList.remove('spinning');
+        }, 400);
+    }
+}
+
 async function fetchDatabase() {
     try {
         const response = await fetch(`https://api.airtable.com/v0/${baseId}/${tableName}`, {
@@ -91,9 +105,11 @@ async function fetchDatabase() {
         const data = await response.json();
         databaseRecords = data.records || [];
         renderManagerList(true);
-        document.getElementById('loading-overlay').style.display = 'none';
+        const loadingOverlay = document.getElementById('loading-overlay');
+        if (loadingOverlay) loadingOverlay.style.display = 'none';
     } catch (error) {
-        document.getElementById('loading-overlay').innerText = "Fehler beim Laden der Database.";
+        const loadingOverlay = document.getElementById('loading-overlay');
+        if (loadingOverlay) loadingOverlay.innerText = "Fehler beim Laden der Database.";
         console.error(error);
     }
 }
@@ -110,7 +126,7 @@ function renderManagerList(isInitialLoad = false) {
         clearBtn.style.display = searchTerm !== "" ? "flex" : "none";
     }
 
-    // FLIP - PHASE 1: FIRST (Alte Positionen für flüssiges Nachrücken erfassen)
+    // FLIP - PHASE 1: FIRST
     const firstPositions = {};
     if (!isInitialLoad) {
         content.querySelectorAll('[data-flip-id]').forEach(el => {
@@ -247,7 +263,6 @@ function renderManagerList(isInitialLoad = false) {
             }, index * 35);
         }
 
-        // UPGRADE: .delete-btn im action-group Block injiziert
         row.innerHTML = `
             <div class="ssd-row-header">
                 <div class="ssd-info-block">
@@ -282,7 +297,7 @@ function renderManagerList(isInitialLoad = false) {
         content.appendChild(row);
     });
 
-    // FLIP - PHASE 2, 3 & 4: PLAY (Die restlichen Zeilen gleiten magisch nach oben!)
+    // FLIP - PHASE 2, 3 & 4: PLAY
     if (!isInitialLoad) {
         content.querySelectorAll('[data-flip-id]').forEach(el => {
             const id = el.getAttribute('data-flip-id');
@@ -312,7 +327,6 @@ function renderManagerList(isInitialLoad = false) {
     }
 }
 
-/* LIVE-UPDATE AN DATABASE */
 async function updateCompanyField(recordId, newFirma) {
     const localRecord = databaseRecords.find(r => r.id === recordId);
     if (localRecord) localRecord.fields.Firma = newFirma;
@@ -332,19 +346,14 @@ async function updateCompanyField(recordId, newFirma) {
     }
 }
 
-/* NEU: Kritische Sicherheits-Löschfunktion mit UI-Bestätigung und FLIP-Ausgleich */
+/* Kritische Sicherheits-Löschfunktion mit UI-Bestätigung und FLIP-Ausgleich */
 async function deleteSSD(recordId, ssdName) {
-    // Zweistufiger Sicherheitsgurt gegen unabsichtliches Klicken am Set
     const securityCheck = confirm(`🛑 KRITISCHER VORGANG:\nMöchtest du die SSD "${ssdName}" wirklich unwiderruflich aus der Database löschen?\n\nDieser Vorgang kann NICHT rückgängig gemacht werden!`);
     if (!securityCheck) return;
 
-    // 1. Lokalen RAM-Cache sofort säubern
     databaseRecords = databaseRecords.filter(record => record.id !== recordId);
-
-    // 2. FLIP-Engine sofort triggern -> Elemente gleiten nahtlos zusammen
     renderManagerList(false);
 
-    // 3. Im Hintergrund lautlos und ohne Ruckler die Cloud-Datenbank rasieren
     try {
         await fetch(`https://api.airtable.com/v0/${baseId}/${tableName}/${recordId}`, {
             method: "DELETE",
@@ -397,6 +406,9 @@ function closeScanner() {
     }
     video.srcObject = null;
     lastUUID = "";
+
+    // AUTOMATIK-TRIGGER: Aktualisiert die Liste geräuschlos nach jedem geschlossenen Scan!
+    fetchDatabase();
 }
 
 function tick() {
@@ -492,4 +504,5 @@ window.toggleFeatureHub = toggleFeatureHub;
 window.clearSearch = clearSearch;
 window.toggleSortMenu = toggleSortMenu;
 window.setSortMode = setSortMode;
-window.deleteSSD = deleteSSD; // NEU: Löschfunktion für HTML Scope freigeben
+window.deleteSSD = deleteSSD;
+window.manualRefresh = manualRefresh;
