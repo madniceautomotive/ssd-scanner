@@ -4,7 +4,7 @@ const ctx = canvas.getContext('2d');
 let lastUUID = "";
 let isFetching = false;
 let clearTimer = null;
-let databaseRecords = []; // Lokaler Zwischenspeicher für die Sortierung
+let databaseRecords = []; // Lokaler Zwischenspeicher für die Sortierung und Suche
 
 // ----------------------------------------------------
 // AIRTABLE ACCESS CONFIGURATION (Sicher im privaten Repository)
@@ -13,7 +13,7 @@ const baseId = "appXKM0UQ8uJLuiNB";
 const tableName = "SSDs";
 // ----------------------------------------------------
 
-// Kamera-Feed mit Weitwinkel/Rückkamera initialisieren
+// Kamera-Feed initialisieren
 navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
     .then(function(stream) {
         video.srcObject = stream;
@@ -56,7 +56,6 @@ function parseStorageData(speicherStr) {
     const result = { percentUsed: 0, freeMB: 0 };
     if (!speicherStr) return result;
 
-    // Filtert Zahlen aus Strings wie "240 GB frei von 500 GB" oder "1.2 TB frei von 2 TB"
     const matches = speicherStr.match(/([\d.,]+)\s*([a-zA-Z]*)\s+frei\s+von\s+([\d.,]+)\s*([a-zA-Z]*)/);
     if (!matches) return result;
 
@@ -65,7 +64,6 @@ function parseStorageData(speicherStr) {
     const totalVal = parseFloat(matches[3].replace(',', '.'));
     const totalUnit = matches[4].toLowerCase();
 
-    // Alles auf Megabyte normalisieren um sauber vergleichen zu können
     const toMB = (val, unit) => {
         if (unit.includes('t')) return val * 1024 * 1024;
         if (unit.includes('g')) return val * 1024;
@@ -155,10 +153,13 @@ async function openManager() {
         });
         const data = await response.json();
         
-        // Datensätze im Speicher sichern
         databaseRecords = data.records || [];
         
-        // Liste rendern (nutzt automatisch die eingestellte Sortierung)
+        // Suchfeld beim Öffnen zurücksetzen
+        if (document.getElementById('db-search')) {
+            document.getElementById('db-search').value = '';
+        }
+        
         renderManagerList();
 
     } catch (error) {
@@ -167,10 +168,11 @@ async function openManager() {
     }
 }
 
-/* Rendert die Liste basierend auf der ausgewählten Sortierung */
+/* Rendert die Liste basierend auf Sortierung UND Suchbegriff */
 function renderManagerList() {
     const content = document.getElementById('manager-content');
     const sortBy = document.getElementById('db-sort').value;
+    const searchTerm = document.getElementById('db-search').value.toLowerCase().trim();
     content.innerHTML = '';
 
     if (databaseRecords.length === 0) {
@@ -178,35 +180,44 @@ function renderManagerList() {
         return;
     }
 
-    // Kopie erstellen und sortieren
-    let sortedRecords = [...databaseRecords];
-    
+    // 1. FILTERN nach Suchbegriff (Name, Speicherinfo oder Ordnerinhalt)
+    let processedRecords = databaseRecords.filter(record => {
+        const f = record.fields;
+        const name = (f.Name || '').toLowerCase();
+        const speicher = (f.Speicher || '').toLowerCase();
+        const ordner = (f.Ordner || '').toLowerCase();
+        return name.includes(searchTerm) || speicher.includes(searchTerm) || ordner.includes(searchTerm);
+    });
+
+    if (processedRecords.length === 0) {
+        content.innerHTML = '<div style="text-align:center; color:#a0aec0; padding:20px;">Keine SSDs zu diesem Suchbegriff gefunden.</div>';
+        return;
+    }
+
+    // 2. SORTIEREN der gefilterten Ergebnisse
     if (sortBy === 'name') {
-        // Sortierung nach Alphabet (A-Z)
-        sortedRecords.sort((a, b) => (a.fields.Name || '').localeCompare(b.fields.Name || ''));
+        processedRecords.sort((a, b) => (a.fields.Name || '').localeCompare(b.fields.Name || ''));
     } else if (sortBy === 'storage') {
-        // Sortierung nach freiem Speicherplatz (Meister freier Platz zuerst)
-        sortedRecords.sort((a, b) => {
+        processedRecords.sort((a, b) => {
             const storageA = parseStorageData(a.fields.Speicher);
             const storageB = parseStorageData(b.fields.Speicher);
             return storageB.freeMB - storageA.freeMB;
         });
     }
 
-    // HTML generieren
-    sortedRecords.forEach(record => {
+    // 3. HTML GENERIEREN UND AUSGEBEN
+    processedRecords.forEach(record => {
         const f = record.fields;
         if (!f.UUID || !f.Name) return;
 
         const cleanFolders = f.Ordner ? f.Ordner.split('\\n').filter(Boolean).join('\n') : '(Keine Ordner vorhanden)';
         
-        // Ampel-Logik für den Speicherbalken ermitteln (basiert auf belegtem Platz)
         const storageInfo = parseStorageData(f.Speicher);
-        let barColor = '#2ecc71'; // Bis 70% grün
+        let barColor = '#2ecc71'; 
         if (storageInfo.percentUsed >= 90) {
-            barColor = '#e74c3c'; // Ab 90% rot
+            barColor = '#e74c3c'; 
         } else if (storageInfo.percentUsed >= 70) {
-            barColor = '#f1c40f'; // 70% bis 90% gelb
+            barColor = '#f1c40f'; 
         }
 
         const row = document.createElement('div');

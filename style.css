@@ -32,7 +32,7 @@ body, html {
 .ar-card {
     position: absolute; bottom: 40px; left: 50%;
     transform: translateX(-50%); width: 92%; max-width: 420px;
-    background: rgba(10, 17, 28, 0.94);
+    background: rgba(18, 18, 18, 0.96);
     border: 2px solid #00663a;
     box-shadow: 0 0 30px rgba(0, 102, 58, 0.4);
     border-radius: 16px; padding: 20px; color: white;
@@ -62,7 +62,7 @@ body, html {
 }
 #loading-overlay {
     position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    background: #0a111c; z-index: 10; display: flex;
+    background: #121212; z-index: 10; display: flex;
     flex-direction: column; align-items: center; justify-content: center;
     color: #ffffff; font-size: 1.2rem;
 }
@@ -76,7 +76,7 @@ body, html {
 /* Floating Action Button (FAB) */
 .fab {
     position: absolute; bottom: 30px; right: 30px; z-index: 5;
-    width: 60px; height: 60px; background: #0a111c;
+    width: 60px; height: 60px; background: #121212;
     border: 2px solid #00663a; border-radius: 50%;
     box-shadow: 0 0 15px rgba(0, 102, 58, 0.4);
     display: flex; align-items: center; justify-content: center;
@@ -88,35 +88,53 @@ body, html {
 /* Fullscreen Manager Overlay */
 .manager-overlay {
     position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(10, 17, 28, 0.98); z-index: 6;
+    background: rgba(18, 18, 18, 0.99); z-index: 6;
     display: none; flex-direction: column; color: white;
     box-sizing: border-box; pointer-events: auto;
 }
 .manager-header {
-    padding: 24px 20px; border-bottom: 1px solid rgba(0, 102, 58, 0.3);
+    padding: 20px; border-bottom: 1px solid rgba(0, 102, 58, 0.3);
     display: flex; justify-content: space-between; align-items: center;
-    gap: 10px; flex-wrap: wrap;
+    gap: 14px; flex-wrap: wrap;
 }
-.manager-header h1 { margin: 0; font-size: 1.4rem; color: #ffffff; }
+.manager-header h1 { margin: 0; font-size: 1.3rem; color: #ffffff; }
+
+/* Styling für das neue Suchfeld */
+.search-group {
+    flex: 1; min-width: 160px; max-width: 280px;
+}
+.search-input {
+    width: 100%; background: #121212; color: white; border: 1px solid #00663a;
+    padding: 9px 12px; border-radius: 8px; box-sizing: border-box;
+    outline: none; font-size: 0.85rem; transition: border-color 0.2s;
+}
+.search-input:focus {
+    border-color: #00ff73;
+}
 
 /* Sortiergruppe im Header */
 .sort-group {
-    display: flex; align-items: center; gap: 8px; font-size: 0.9rem; color: #a0aec0;
+    display: flex; align-items: center; gap: 6px; font-size: 0.85rem; color: #a0aec0;
 }
-.sort-select {
-    background: #0a111c; color: white; border: 1px solid #00663a;
-    padding: 8px 12px; border-radius: 8px; font-weight: bold; outline: none; cursor: pointer;
+
+/* iOS FIX FÜR VERSCHWUNDENE PFEILE: appearance: none + Custom SVG Arrow */
+.sort-select, .logo-select {
+    -webkit-appearance: none; -moz-appearance: none; appearance: none;
+    background: #121212; color: white; border: 1px solid #00663a;
+    padding: 9px 28px 9px 12px; border-radius: 8px; font-weight: bold; outline: none; cursor: pointer; font-size: 0.85rem;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+    background-repeat: no-repeat; background-position: right 8px center; background-size: 16px;
 }
 
 .close-btn {
     background: #00663a; border: none; color: white;
-    padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: bold;
+    padding: 9px 16px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 0.85rem;
 }
 .manager-content {
     flex: 1; overflow-y: auto; padding: 20px;
 }
 .ssd-row {
-    background: rgba(255, 255, 255, 0.05); border-radius: 12px;
+    background: rgba(255, 255, 255, 0.04); border-radius: 12px;
     padding: 16px; margin-bottom: 14px; border-left: 4px solid #00663a;
     display: flex; flex-direction: column; align-items: stretch;
 }
@@ -137,14 +155,9 @@ body, html {
     height: 100%; width: 0%; transition: width 0.4s ease, background-color 0.4s ease;
 }
 
-/* Action Group & Dropdown Menu */
+/* Action Group */
 .action-group {
     display: flex; align-items: center; gap: 8px;
-}
-.logo-select {
-    background: #0a111c; color: white; border: 1px solid #00663a;
-    padding: 9px 8px; border-radius: 8px; font-weight: bold; outline: none;
-    cursor: pointer; font-size: 0.85rem;
 }
 .print-btn {
     background: #00663a; border: none; color: white;
@@ -171,7 +184,7 @@ body, html {
 }
 .ssd-details[open] summary::before { transform: rotate(90deg); }
 .ssd-folders-preview {
-    background: rgba(255, 255, 255, 0.03); border-radius: 8px;
+    background: rgba(255, 255, 255, 0.02); border-radius: 8px;
     padding: 10px; margin-top: 8px; max-height: 160px; overflow-y: auto;
     font-family: "SF Mono", Monaco, Consolas, monospace;
     font-size: 0.8rem; white-space: pre-wrap; line-height: 1.4;

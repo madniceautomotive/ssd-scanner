@@ -46,6 +46,10 @@
         <div class="manager-header">
             <h1>MNAU Database</h1>
             
+            <div class="search-group">
+                <input type="text" id="db-search" class="search-input" placeholder="SSD oder Ordner suchen..." oninput="renderManagerList()">
+            </div>
+            
             <div class="sort-group">
                 <label for="db-sort">Sortieren:</label>
                 <select id="db-sort" class="sort-select" onchange="renderManagerList()">
