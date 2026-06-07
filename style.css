@@ -44,16 +44,12 @@ body, html {
     flex: 1; overflow-y: auto; padding: 20px; padding-bottom: 90px;
 }
 
-/* Zeilen-Animation */
+/* Base-Klasse der Zeilen (Das Shifting wird flüssig per JS-Invertierung getrieben) */
 .ssd-row {
     background: rgba(255, 255, 255, 0.04); border-radius: 12px;
     padding: 16px; margin-bottom: 14px; border-left: 4px solid #00663a;
     display: flex; flex-direction: column; align-items: stretch;
-    opacity: 0; transform: translateY(16px);
-    animation: rowFadeIn 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-@keyframes rowFadeIn {
-    to { opacity: 1; transform: translateY(0); }
+    will-change: transform, opacity;
 }
 
 .ssd-row-header {
@@ -98,7 +94,7 @@ body, html {
 }
 .ssd-details[open] summary::before { transform: rotate(90deg); }
 
-/* MODERNES GRAPHICAL-LISTING */
+/* GRAPHICAL-LISTING CHIPS */
 .folder-list, .ssd-folders-preview {
     background: rgba(0, 0, 0, 0.2); border-radius: 8px;
     padding: 10px; margin-top: 8px; max-height: 180px; overflow-y: auto;
@@ -158,6 +154,7 @@ body, html {
     100% { transform: translateY(0); }
 }
 
+/* Massiver, 100% blickdichter Hintergrund & Smart Elastic Slide-Up */
 .ar-card {
     position: absolute; bottom: 30px; left: 50%;
     transform: translate(-50%, 120%); 
@@ -172,7 +169,6 @@ body, html {
 }
 .ar-card.active { transform: translate(-50%, 0); opacity: 1; }
 
-/* REPARIERT: Mehr Abstand und edle Trennlinie vor dem "Zuletzt Aktualisiert" */
 .update-time {
     font-size: 0.72rem; color: #a0aec0; text-align: right; 
     margin-top: 22px; 
@@ -208,10 +204,11 @@ body, html {
 .ssd-row.gecko-brand .ssd-folders-preview { border-left-color: #29ABE2; }
 .ssd-row.gecko-brand .folder-list, .ssd-row.gecko-brand .ssd-folders-preview { border-left-color: #29ABE2; }
 
-/* GROUP-DIVIDER */
+/* GROUP-DIVIDER (Ebenfalls mit will-change für flüssiges Ausweichen gerüstet) */
 .section-divider {
     display: flex; align-items: center; margin: 30px 0 16px 0;
     font-size: 0.72rem; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; user-select: none;
+    will-change: transform;
 }
 .section-divider::before { content: '// '; margin-right: 6px; font-weight: 900; }
 .section-divider::after { content: ''; flex: 1; height: 1px; margin-left: 14px; }

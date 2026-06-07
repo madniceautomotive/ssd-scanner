@@ -31,7 +31,7 @@ const cameraConstraints = {
 // GLOBAL HELPERS
 // ====================================================
 
-/* REPARIERT: Bereinigt kryptische Einheiten wie 'Ti'/'Gi' in allgemein gängige Kürzel ('TB'/'GB') */
+/* Berechtigt Einheiten: Wandelt kryptische Angaben wie 'Ti'/'Gi' in allgemein verständliche Kürzel ('TB'/'GB') um */
 function cleanStorageUnits(speicherStr) {
     if (!speicherStr) return "Keine Info";
     return speicherStr
@@ -87,7 +87,7 @@ function generateFolderHTML(ordnerStr, company) {
     const iconColor = company === "Gecko" ? "#29ABE2" : "#00663a";
     
     return folderArray.map((folder, index) => `
-        <div class="folder-item" style="animation-delay: ${index * 0.04}s;">
+        <div class="folder-item" style="animation-delay: ${index * 0.03}s;">
             <svg class="folder-icon" style="fill: ${iconColor};" viewBox="0 0 24 24">
                 <path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
             </svg>
@@ -101,6 +101,7 @@ function generateFolderHTML(ordnerStr, company) {
 // ====================================================
 
 document.addEventListener("DOMContentLoaded", () => {
+    // Parameter 'true' signalisiert den kaskadierenden Erst-Start der App
     fetchDatabase();
 });
 
@@ -113,7 +114,7 @@ async function fetchDatabase() {
         const data = await response.json();
         databaseRecords = data.records || [];
         
-        renderManagerList();
+        renderManagerList(true); // True = Erst-Vollaufbau mit Stagger-Effekt
         document.getElementById('loading-overlay').style.display = 'none';
     } catch (error) {
         document.getElementById('loading-overlay').innerText = "Fehler beim Laden der Airtable-Datenbank.";
@@ -121,18 +122,24 @@ async function fetchDatabase() {
     }
 }
 
-/* Rendert die Liste basierend auf Sortierung UND Suchbegriff */
-function renderManagerList(movedRecordId = null) {
+/* HIGH-PERFORMANCE FLIP ENGINE: Filtert, sortiert und animiert Positionsänderungen live */
+function renderManagerList(isInitialLoad = false) {
     const content = document.getElementById('manager-content');
     const sortBy = document.getElementById('db-sort').value;
     const searchTerm = document.getElementById('db-search').value.toLowerCase().trim();
-    content.innerHTML = '';
 
-    if (databaseRecords.length === 0) {
-        content.innerHTML = '<div style="text-align:center; color:#a0aec0; padding:20px;">Keine Daten gefunden.</div>';
-        return;
+    // ----------------------------------------------------
+    // FLIP - PHASE 1: FIRST (Alte Positionen aller Elemente scannen)
+    // ----------------------------------------------------
+    const firstPositions = {};
+    if (!isInitialLoad) {
+        content.querySelectorAll('[data-flip-id]').forEach(el => {
+            const id = el.getAttribute('data-flip-id');
+            firstPositions[id] = el.getBoundingClientRect();
+        });
     }
 
+    // Filter-Logik
     let processedRecords = databaseRecords.filter(record => {
         const f = record.fields;
         return (f.Name || '').toLowerCase().includes(searchTerm) || 
@@ -146,6 +153,7 @@ function renderManagerList(movedRecordId = null) {
         return;
     }
 
+    // Firmen-Prio-Sortierung (MNAU immer über Gecko)
     const companyComparator = (a, b) => {
         const firmaA = a.fields.Firma || 'MNAU';
         const firmaB = b.fields.Firma || 'MNAU';
@@ -153,12 +161,15 @@ function renderManagerList(movedRecordId = null) {
         return (firmaA === 'MNAU' && firmaB === 'Gecko') ? -1 : 1;
     };
 
+    // Sortierung anwenden
     if (sortBy === 'name') {
         processedRecords.sort((a, b) => companyComparator(a, b) || (a.fields.Name || '').localeCompare(b.fields.Name || ' '));
     } else if (sortBy === 'storage') {
         processedRecords.sort((a, b) => companyComparator(a, b) || parseStorageData(b.fields.Speicher).freeMB - parseStorageData(a.fields.Speicher).freeMB);
     }
 
+    // DOM komplett leeren und neu aufbauen
+    content.innerHTML = '';
     let lastCompanySeen = null;
 
     processedRecords.forEach((record, index) => {
@@ -167,9 +178,11 @@ function renderManagerList(movedRecordId = null) {
 
         const currentFirma = f.Firma || "MNAU";
 
+        // Gruppen-Trenner einziehen
         if (currentFirma !== lastCompanySeen) {
             const divider = document.createElement('div');
             divider.className = `section-divider ${currentFirma.toLowerCase()}-divider`;
+            divider.setAttribute('data-flip-id', `divider-${currentFirma.toLowerCase()}`);
             divider.innerHTML = `<span>${currentFirma} STORAGE UNITS</span>`;
             content.appendChild(divider);
             lastCompanySeen = currentFirma;
@@ -184,18 +197,17 @@ function renderManagerList(movedRecordId = null) {
 
         const row = document.createElement('div');
         row.className = `ssd-row ${brandClass}`;
+        row.setAttribute('data-flip-id', record.id); // Wichtig für das Tracking
         
-        // REPARIERT: Kontrollierter Einfliege-Effekt (Verhindert Ruckeln beim Durchreichen)
-        if (movedRecordId) {
-            if (record.id === movedRecordId) {
-                row.style.animation = 'rowFadeIn 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.2) forwards';
-            } else {
-                row.style.animation = 'none';
+        // Erst-Lade-Verzögerung für flüssigen App-Start
+        if (isInitialLoad) {
+            row.style.opacity = '0';
+            row.style.transform = 'translateY(16px)';
+            setTimeout(() => {
+                row.style.transition = 'opacity 0.4s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)';
                 row.style.opacity = '1';
                 row.style.transform = 'translateY(0)';
-            }
-        } else {
-            row.style.animationDelay = `${index * 0.04}s`;
+            }, index * 35);
         }
         
         row.innerHTML = `
@@ -208,7 +220,7 @@ function renderManagerList(movedRecordId = null) {
                     </div>
                 </div>
                 <div class="action-group">
-                    <select id="logo-select-${f.UUID}" class="logo-select" onchange="updateCompanyField('${record.id}', this.value, this)">
+                    <select id="logo-select-${f.UUID}" class="logo-select" onchange="updateCompanyField('${record.id}', this.value)">
                         <option value="MNAU" ${currentFirma === 'MNAU' ? 'selected' : ''}>MNAU</option>
                         <option value="Gecko" ${currentFirma === 'Gecko' ? 'selected' : ''}>Gecko</option>
                     </select>
@@ -225,48 +237,68 @@ function renderManagerList(movedRecordId = null) {
         `;
         content.appendChild(row);
     });
+
+    // ----------------------------------------------------
+    // FLIP - PHASE 2 & 3: LAST & INVERT (Verschiebungen berechnen)
+    // ----------------------------------------------------
+    if (!isInitialLoad) {
+        content.querySelectorAll('[data-flip-id]').forEach(el => {
+            const id = el.getAttribute('data-flip-id');
+            const first = firstPositions[id];
+            
+            if (first) {
+                const last = el.getBoundingClientRect();
+                const dy = first.top - last.top;
+                
+                if (dy !== 0) {
+                    // Element blitzschnell ohne Transition auf die Start-Position zurückzwingen
+                    el.style.transition = 'none';
+                    el.style.transform = `translateY(${dy}px)`;
+                }
+            } else {
+                // Komplett neu auftauchende Elemente (z.B. durch Filterung) sanft einblenden
+                el.style.opacity = '0';
+                el.style.transform = 'translateY(15px)';
+            }
+        });
+
+        // ----------------------------------------------------
+        // FLIP - PHASE 4: PLAY (Mit snappy Physik an den neuen Platz gleiten lassen)
+        // ----------------------------------------------------
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                content.querySelectorAll('[data-flip-id]').forEach(el => {
+                    // Das extrem snappy 'Cubic-Bezier' sorgt für das edle Gleit-Gefühl
+                    el.style.transition = 'transform 0.55s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.4s ease';
+                    el.style.transform = 'translateY(0)';
+                    el.style.opacity = '1';
+                });
+            });
+        });
+    }
 }
 
-/* LIVE-UPDATE AN AIRTABLE: Mit hocheleganten Inline-Zusammenstauchungs-Effekt */
-async function updateCompanyField(recordId, newFirma, selectElement) {
-    try {
-        // Findet die genaue Zeile im Browser-Fenster
-        const rowElement = selectElement.closest('.ssd-row');
-        if (rowElement) {
-            // Fährt die alte Zeile weich auf 0-Größe herunter und schiebt sie optisch weg
-            rowElement.style.transition = 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
-            rowElement.style.opacity = '0';
-            rowElement.style.transform = 'translateY(25px) scale(0.95)';
-            rowElement.style.maxHeight = '0px';
-            rowElement.style.marginBottom = '0px';
-            rowElement.style.paddingTop = '0px';
-            rowElement.style.paddingBottom = '0px';
-            rowElement.style.overflow = 'hidden';
-        }
+/* LIVE-UPDATE AN AIRTABLE: Schießt die Daten raus und delegiert die Animation an die FLIP-Engine */
+async function updateCompanyField(recordId, newFirma) {
+    // 1. Lokalen Cache sofort manipulieren
+    const localRecord = databaseRecords.find(r => r.id === recordId);
+    if (localRecord) localRecord.fields.Firma = newFirma;
+    
+    // 2. Sofortigen Re-Render mit FLIP-Flugbewegung auslösen (false = kein kaskadierender Erst-Stagger)
+    renderManagerList(false);
 
-        // Parallel läuft die API-Anfrage im Hintergrund weiter (Keine Wartezeit für den Nutzer!)
-        fetch(`https://api.airtable.com/v0/${baseId}/${tableName}/${recordId}`, {
+    // 3. Im Hintergrund lautlos mit Airtable synchronisieren
+    try {
+        await fetch(`https://api.airtable.com/v0/${baseId}/${tableName}/${recordId}`, {
             method: "PATCH",
             headers: {
                 "Authorization": `Bearer ${airtableToken}`,
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({ fields: { "Firma": newFirma } })
-        }).then(response => {
-            if (!response.ok) console.error("Airtable-Hintergrundsync fehlgeschlagen.");
         });
-
-        // Sobald die Zusammenstauchung fertig ist (400ms), ordnen wir die Liste im Speicher neu an
-        setTimeout(() => {
-            const localRecord = databaseRecords.find(r => r.id === recordId);
-            if (localRecord) localRecord.fields.Firma = newFirma;
-            
-            // Rendert die Liste neu und übergibt die ID, damit NUR diese Zeile am neuen Ort auffedert
-            renderManagerList(recordId);
-        }, 400);
-
     } catch (error) {
-        console.error(error);
+        console.error("Airtable-Hintergrundsync fehlgeschlagen:", error);
     }
 }
 
@@ -370,7 +402,6 @@ async function handleQRDetected(uuid) {
             const brandColor = company === "Gecko" ? "#29ABE2" : "#00663a";
 
             nameEl.innerText = fields.Name || "Unbenannte SSD";
-            // REPARIERT: Auch hier in der AR-Kameraansicht werden die gereinigten Einheiten ausgespuckt!
             speicherEl.innerText = cleanStorageUnits(fields.Speicher);
             ordnerEl.innerHTML = generateFolderHTML(fields.Ordner, company);
             updateEl.innerText = "Zuletzt aktualisiert: " + (fields.Updates || "-");
@@ -384,7 +415,7 @@ async function handleQRDetected(uuid) {
     } catch (error) {
         nameEl.innerText = "Verbindungsfehler";
         speicherEl.innerText = "Airtable-Server nicht erreichbar.";
-    } finally {
+    } {
         isFetching = false;
         resetClearTimer();
     }
