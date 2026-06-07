@@ -75,21 +75,35 @@ function parseStorageData(speicherStr) {
     return result;
 }
 
-/* Ordner-Parser: Erstellt saubere UI-Chips inklusive gezieltem Suchbegriff-Highlighting */
+/* UPGRADE: Ordner-Parser mit intelligenter Vorsortierung (Gefundene Ordner an Pos 1 reihen) */
 function generateFolderHTML(ordnerStr, company, searchTerm = "") {
     if (!ordnerStr || ordnerStr.trim() === "" || ordnerStr.includes("(Leer)")) {
         return '<div class="no-folders">Keine Ordner vorhanden</div>';
     }
     
-    const folderArray = ordnerStr.split(/\\n|\n/).filter(Boolean);
+    const folderArray = ordnerStr.split(/\\n|\n/).filter(Boolean).map(f => f.trim());
     if (folderArray.length === 0) return '<div class="no-folders">Keine Ordner vorhanden</div>';
+    
+    // 1. Ordner in strukturierte Objekte mit Match-Status überführen
+    const folderObjects = folderArray.map(folder => {
+        return {
+            name: folder,
+            isMatched: searchTerm !== "" && folder.toLowerCase().includes(searchTerm)
+        };
+    });
+    
+    // 2. DYNAMISCHE CHIP-SORTIERUNG: Gefundene Ordner (isMatched === true) nach ganz oben schieben
+    folderObjects.sort((a, b) => {
+        if (a.isMatched && !b.isMatched) return -1;
+        if (!a.isMatched && b.isMatched) return 1;
+        return 0; // Originale Reihenfolge beibehalten, wenn beide matchen oder beide nicht matchen
+    });
     
     const iconColor = company === "Gecko" ? "#29ABE2" : "#00663a";
     
-    return folderArray.map((folder, index) => {
-        const trimmedFolder = folder.trim();
-        // Prüfen, ob dieser spezifische Ordner mit dem Suchbegriff übereinstimmt
-        const isMatched = searchTerm !== "" && trimmedFolder.toLowerCase().includes(searchTerm);
+    // 3. HTML generieren basierend auf der neuen, suchoptimierten Sortierung
+    return folderObjects.map((folderObj, index) => {
+        const isMatched = folderObj.isMatched;
         const highlightClass = isMatched ? "highlighted-folder" : "";
         
         return `
@@ -97,7 +111,7 @@ function generateFolderHTML(ordnerStr, company, searchTerm = "") {
                 <svg class="folder-icon" style="fill: ${isMatched ? (company === 'Gecko' ? '#121212' : '#ffffff') : iconColor};" viewBox="0 0 24 24">
                     <path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
                 </svg>
-                <span class="folder-name">${trimmedFolder}</span>
+                <span class="folder-name">${folderObj.name}</span>
             </div>
         `;
     }).join('');
@@ -198,10 +212,8 @@ function renderManagerList(isInitialLoad = false) {
         if (storageInfo.percentUsed >= 90) barColor = '#e74c3c'; 
         else if (storageInfo.percentUsed >= 70) barColor = '#f1c40f'; 
 
-        // UPGRADE: Prüfen, ob die Suche einen Ordner auf dieser SSD getroffen hat
         const ordnerText = (f.Ordner || '').toLowerCase();
         const hasMatchingFolder = searchTerm !== "" && ordnerText.includes(searchTerm);
-        // Falls ja, zwingen wir das HTML-Akkordeon via "open"-Attribut in den geöffneten Zustand!
         const autoOpenAttribute = hasMatchingFolder ? "open" : "";
 
         const row = document.createElement('div');
@@ -398,10 +410,7 @@ async function handleQRDetected(uuid) {
 
             nameEl.innerText = fields.Name || "Unbenannte SSD";
             speicherEl.innerText = cleanStorageUnits(fields.Speicher);
-            
-            // Reicht ein leeres Feld ein, da beim physischen AR-Scannen per Kamera kein Suchfeld aktiv ist
             ordnerEl.innerHTML = generateFolderHTML(fields.Ordner, company, "");
-            
             updateEl.innerText = "Zuletzt aktualisiert: " + (fields.Updates || "-");
             card.style.borderColor = brandColor;
         } else {
