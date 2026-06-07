@@ -263,6 +263,7 @@ function renderManagerList(isInitialLoad = false) {
             }, index * 35);
         }
 
+        // REPARIERT: Balken startet bei width: 0% und bekommt eine Kontrollklasse für die JS-Animation spendiert
         row.innerHTML = `
             <div class="ssd-row-header">
                 <div class="ssd-info-block">
@@ -272,7 +273,7 @@ function renderManagerList(isInitialLoad = false) {
                     </div>
                     <div class="ssd-row-meta">Speicher: ${cleanStorageUnits(f.Speicher)}</div>
                     <div class="storage-bar-container">
-                        <div class="storage-bar" style="width: ${storageInfo.percentUsed}%; background-color: ${barColor};"></div>
+                        <div class="storage-bar list-storage-bar" style="width: 0%; background-color: ${barColor};" data-target-width="${storageInfo.percentUsed}%"></div>
                     </div>
                 </div>
                 <div class="action-group">
@@ -295,6 +296,15 @@ function renderManagerList(isInitialLoad = false) {
             </details>
         `;
         content.appendChild(row);
+    });
+
+    // NEU: Triggert die Auflade-Animation der Balken in der Listenansicht bei jedem Rendern
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            content.querySelectorAll('.list-storage-bar').forEach(bar => {
+                bar.style.width = bar.getAttribute('data-target-width');
+            });
+        });
     });
 
     // FLIP - PHASE 2, 3 & 4: PLAY
@@ -346,7 +356,6 @@ async function updateCompanyField(recordId, newFirma) {
     }
 }
 
-/* Kritische Sicherheits-Löschfunktion mit UI-Bestätigung und FLIP-Ausgleich */
 async function deleteSSD(recordId, ssdName) {
     const securityCheck = confirm(`🛑 KRITISCHER VORGANG:\nMöchtest du die SSD "${ssdName}" wirklich unwiderruflich aus der Database löschen?\n\nDieser Vorgang kann NICHT rückgängig gemacht werden!`);
     if (!securityCheck) return;
@@ -371,6 +380,13 @@ function openScanner() {
     document.getElementById('scanner-overlay').classList.add('active');
     isScannerActive = true;
     lastUUID = "";
+
+    // Reset des Scanner-Balkens auf Nullstellung vor dem Öffnen
+    const arStorageBar = document.getElementById('ar-storage-bar');
+    if (arStorageBar) {
+        arStorageBar.style.transition = 'none';
+        arStorageBar.style.width = '0%';
+    }
 
     navigator.mediaDevices.getUserMedia(cameraConstraints)
         .then(function(stream) {
@@ -406,8 +422,6 @@ function closeScanner() {
     }
     video.srcObject = null;
     lastUUID = "";
-
-    // AUTOMATIK-TRIGGER: Aktualisiert die Liste geräuschlos nach jedem geschlossenen Scan!
     fetchDatabase();
 }
 
@@ -447,6 +461,13 @@ async function handleQRDetected(uuid) {
     const speicherEl = document.getElementById('ssd-speicher');
     const ordnerEl = document.getElementById('ssd-ordner');
     const updateEl = document.getElementById('ssd-update');
+    const arStorageBar = document.getElementById('ar-storage-bar');
+
+    // Blitzschneller Reset des Balkens auf 0% bei Erkennung einer neuen ID
+    if (arStorageBar) {
+        arStorageBar.style.transition = 'none';
+        arStorageBar.style.width = '0%';
+    }
 
     card.classList.add('active');
     card.style.borderColor = '#00663a';
@@ -466,11 +487,27 @@ async function handleQRDetected(uuid) {
             const company = fields.Firma || "MNAU";
             const brandColor = company === "Gecko" ? "#29ABE2" : "#00663a";
 
+            const storageInfo = parseStorageData(fields.Speicher);
+            let barColor = '#2ecc71';
+            if (storageInfo.percentUsed >= 90) barColor = '#e74c3c';
+            else if (storageInfo.percentUsed >= 70) barColor = '#f1c40f';
+
             nameEl.innerText = fields.Name || "Unbenannte SSD";
             speicherEl.innerText = cleanStorageUnits(fields.Speicher);
             ordnerEl.innerHTML = generateFolderHTML(fields.Ordner, company, "");
             updateEl.innerText = "Zuletzt aktualisiert: " + (fields.Updates || "-");
             card.style.borderColor = brandColor;
+
+            // NEU: Triggert die dynamische Auflade-Animation im Kamera-Interface
+            if (arStorageBar) {
+                arStorageBar.style.backgroundColor = barColor;
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        arStorageBar.style.transition = 'width 0.65s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s';
+                        arStorageBar.style.width = `${storageInfo.percentUsed}%`;
+                    });
+                });
+            }
         } else {
             nameEl.innerText = "Unbekannte SSD";
             speicherEl.innerText = "Gescannte ID: " + uuid;
@@ -494,7 +531,6 @@ function resetClearTimer() {
     }, 6000);
 }
 
-// Global an Window binden
 window.openScanner = openScanner;
 window.closeScanner = closeScanner;
 window.renderManagerList = renderManagerList;

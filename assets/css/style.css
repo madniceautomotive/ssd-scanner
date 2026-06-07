@@ -1,6 +1,3 @@
-/* ==================================================== */
-/* 1. GLOBAL RESET & BASE CYBERPUNK THEME              */
-/* ==================================================== */
 body, html {
     margin: 0; padding: 0; width: 100%; height: 100%;
     overflow: hidden; background-color: #121212;
@@ -11,9 +8,6 @@ body, html {
     background-color: #121212; color: white; box-sizing: border-box;
 }
 
-/* ==================================================== */
-/* 2. DYNAMIC HEADER & HUD INTERACTION BARS            */
-/* ==================================================== */
 .database-header {
     padding: 20px 24px; border-bottom: 1px solid rgba(0, 102, 58, 0.25);
     display: flex; flex-direction: column; gap: 16px; background-color: #141414;
@@ -55,9 +49,6 @@ body, html {
 .search-clear-btn svg { width: 13px; height: 13px; fill: #718096; transition: fill 0.15s; }
 .search-clear-btn:hover svg { fill: #e74c3c; }
 
-/* ==================================================== */
-/* 3. CUSTOM ICON SORT DROPDOWN SYSTEM                  */
-/* ==================================================== */
 .sort-dropdown-container {
     position: relative; display: inline-block; flex-shrink: 0;
 }
@@ -101,9 +92,6 @@ body, html {
 .logo-select { width: 105px; }
 .sort-select:active, .logo-select:active { transform: scale(0.98); }
 
-/* ==================================================== */
-/* 4. EXTENDABLE FEATURE HUB DRAWERS STYLING            */
-/* ==================================================== */
 .feature-toggle-btn {
     background: #1c1c1c; border: 1px solid rgba(0, 102, 58, 0.5); color: #a0aec0;
     padding: 8px 14px; border-radius: 8px; font-size: 0.82rem; font-weight: 700;
@@ -153,9 +141,6 @@ body, html {
 .alloc-target-chip.mnau-alloc-chip { border: 1px solid #00663a; }
 .alloc-target-chip.gecko-alloc-chip { border: 1px solid #29ABE2; }
 
-/* ==================================================== */
-/* 5. DATABASE SSD ROWS & STORAGE BARS                  */
-/* ==================================================== */
 .manager-content { flex: 1; overflow-y: auto; padding: 20px; padding-bottom: 90px; }
 .ssd-row {
     background: rgba(255, 255, 255, 0.03); border-radius: 12px;
@@ -180,7 +165,6 @@ body, html {
 .alloc-row-badge { background: #00663a; color: white; padding: 3px 8px; border-radius: 5px; font-size: 0.65rem; text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px; display: inline-block; line-height: 1; }
 .ssd-row.recommended-alloc-row { background: rgba(0, 102, 58, 0.06); box-shadow: 0 0 15px rgba(0, 102, 58, 0.15) !important; }
 
-/* Industrial Deletion Button */
 .delete-btn {
     background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(231, 76, 60, 0.25); color: #e74c3c;
     width: 41px; height: 41px; border-radius: 10px; cursor: pointer;
@@ -201,9 +185,6 @@ body, html {
     .action-group .delete-btn { flex-shrink: 0; }
 }
 
-/* ==================================================== */
-/* 6. ACCORDION DETAILS & FOLDER PREVIEWS               */
-/* ==================================================== */
 .ssd-details { margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(0, 102, 58, 0.2); }
 .ssd-details summary { color: #a0aec0; font-size: 0.85rem; cursor: pointer; outline: none; user-select: none; list-style: none; display: flex; align-items: center; gap: 6px; transition: color 0.2s; }
 .ssd-details summary:hover { color: white; }
@@ -221,9 +202,6 @@ body, html {
 .sort-select { display: none !important; }
 .alloc-unit { display: block !important; }
 
-/* ==================================================== */
-/* 7. HARDWARE CAMERA STREAMS & SCANNING HUD            */
-/* ==================================================== */
 .fab-camera-trigger { position: absolute; bottom: 30px; right: 30px; z-index: 5; width: 60px; height: 60px; background: #00663a; border: 2px solid #ffffff; border-radius: 50%; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; cursor: pointer; pointer-events: auto; transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s; }
 .fab-camera-trigger:hover { transform: scale(1.08); box-shadow: 0 0 25px rgba(0, 102, 58, 0.6); }
 .fab-camera-trigger:active { transform: scale(0.9); }
@@ -256,7 +234,6 @@ body, html {
 .spinner { width: 40px; height: 40px; border: 4px solid rgba(0, 102, 58, 0.2); border-top-color: #00663a; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* Brand Dividers */
 .section-divider { display: flex; align-items: center; margin: 30px 0 16px 0; font-size: 0.72rem; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; user-select: none; will-change: transform; }
 .section-divider::before { content: '// '; margin-right: 6px; font-weight: 900; }
 .section-divider::after { content: ''; flex: 1; height: 1px; margin-left: 14px; }
@@ -265,9 +242,6 @@ body, html {
 .section-divider.gecko-divider { color: #29ABE2; }
 .section-divider.gecko-divider::after { background: linear-gradient(to right, rgba(41, 171, 226, 0.8), transparent); }
 
-/* ==================================================== */
-/* 8. GECKO BRAND OVERRIDES & CYAN HIGHLIGHTS            */
-/* ==================================================== */
 .ssd-row.gecko-brand { border-left-color: #29ABE2; }
 .ssd-row.gecko-brand .logo-select { border-color: #29ABE2; }
 .ssd-row.gecko-brand .print-btn { background: #29ABE2; color: #121212; }
@@ -277,19 +251,14 @@ body, html {
 .ssd-row.gecko-brand.recommended-alloc-row { background: rgba(41, 171, 226, 0.04); box-shadow: 0 0 15px rgba(41, 171, 226, 0.15) !important; }
 .gecko-brand .alloc-row-badge { background: #29ABE2; color: #121212; }
 
-/* ==================================================== */
-/* 9. ADVANCED SPECIFICITY NEON HIGHLIGHT MATCHING ENGINE*/
-/* ==================================================== */
-@keyframes neonPulse {
-    0% { box-shadow: 0 0 4px rgba(255,255,255,0.1); }
-    50% { box-shadow: 0 0 16px var(--glow-color); }
-    100% { box-shadow: 0 0 4px rgba(255,255,255,0.1); }
+@title neonPulse {
+0% { box-shadow: 0 0 4px rgba(255,255,255,0.1); }
+50% { box-shadow: 0 0 16px var(--glow-color); }
+100% { box-shadow: 0 0 4px rgba(255,255,255,0.1); }
 }
-
 .folder-item.highlighted-folder {
     animation: folderChipIn 0.3s ease forwards, neonPulse 1.8s infinite ease-in-out !important;
 }
-
 .ssd-row.mnau-brand .folder-item.highlighted-folder {
     --glow-color: rgba(0, 255, 115, 0.6);
     background: #00663a !important;
@@ -299,7 +268,6 @@ body, html {
     color: #ffffff !important;
     font-weight: bold !important;
 }
-
 .ssd-row.gecko-brand .folder-item.highlighted-folder {
     --glow-color: rgba(41, 171, 226, 0.6);
     background: #29ABE2 !important;
@@ -310,9 +278,6 @@ body, html {
     font-weight: bold !important;
 }
 
-/* ==================================================== */
-/* 10. REFRESH BUTTON SPIN KEYFRAMES                    */
-/* ==================================================== */
 @keyframes hudRefreshSpin {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
