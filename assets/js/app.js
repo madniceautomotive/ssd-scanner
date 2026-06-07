@@ -1,34 +1,14 @@
-// Importiert Berechnungen und Druck-Logiken EXKLUSIV aus den Modulen
+// Importiert Konfigurationen, Helfer und Sub-Module
+import { airtableToken, baseId, tableName } from './modules/config.js';
 import { cleanStorageUnits, parseStorageData, generateFolderHTML } from './modules/helpers.js';
 import { generateLabelPNG } from './modules/printer.js';
+import { openScanner, closeScanner, setupScanner } from './modules/scanner.js';
 
-const video = document.getElementById('video');
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
-let lastUUID = "";
-let isFetching = false;
-let clearTimer = null;
 let databaseRecords = [];
 
-let cameraStream = null;
-let isScannerActive = false;
-
-// Database Konfiguration
-const airtableToken = "pat4ytEWExJctNU62.59f8c764a353cf3d3571ea45e9d0d2e713e95a5a83499e97c5770f60850170b9";
-const baseId = "appXKM0UQ8uJLuiNB";
-const tableName = "SSDs";
-
-const cameraConstraints = {
-    video: {
-        facingMode: "environment",
-        width: { ideal: 1920 },
-        height: { ideal: 1080 },
-        frameRate: { ideal: 30 }
-    },
-    audio: false
-};
-
 document.addEventListener("DOMContentLoaded", () => {
+    // Scanner mitteilen, welche Funktion nach dem Schließen lautlos aktualisieren soll
+    setupScanner(fetchDatabase);
     fetchDatabase();
 });
 
@@ -114,7 +94,7 @@ async function fetchDatabase() {
     }
 }
 
-/* HIGH-PERFORMANCE FLIP ENGINE */
+/* HIGH-PERFORMANCE FLIP ENGINE: Sortiert und animiert das Dashboard */
 function renderManagerList(isInitialLoad = false) {
     const content = document.getElementById('manager-content');
     const sortBy = document.getElementById('db-sort').value;
@@ -249,17 +229,6 @@ function renderManagerList(isInitialLoad = false) {
         row.className = `ssd-row ${brandClass} ${isRecommended}`;
         row.setAttribute('data-flip-id', record.id);
 
-        if (isInitialLoad) {
-            row.style.opacity = '0';
-            row.style.transform = 'translateY(16px)';
-            setTimeout(() => {
-                row.style.transition = 'opacity 0.4s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)';
-                row.style.opacity = '1';
-                row.style.transform = 'translateY(0)';
-            }, index * 35);
-        }
-
-        // REPARIERT: Nutzt data-target-width zur GPU-Verarbeitung
         row.innerHTML = `
             <div class="ssd-row-header">
                 <div class="ssd-info-block">
@@ -269,7 +238,7 @@ function renderManagerList(isInitialLoad = false) {
                     </div>
                     <div class="ssd-row-meta">Speicher: ${cleanStorageUnits(f.Speicher)}</div>
                     <div class="storage-bar-container">
-                        <div class="storage-bar list-storage-bar" style="background-color: ${barColor};" data-target-width="${storageInfo.percentUsed}%"></div>
+                        <div class="storage-bar list-storage-bar" style="width: 0%; background-color: ${barColor};" data-target-width="${storageInfo.percentUsed}%"></div>
                     </div>
                 </div>
                 <div class="action-group">
@@ -292,13 +261,19 @@ function renderManagerList(isInitialLoad = false) {
             </details>
         `;
         content.appendChild(row);
-    });
 
-    // REPARIERT: "Forced Reflow" bricht das DOM-Batching auf und animiert die Listenbalken fehlerfrei
-    content.querySelectorAll('.list-storage-bar').forEach(bar => {
-        bar.style.width = '0%';
-        bar.offsetWidth; // Layout Flush
-        bar.style.width = bar.getAttribute('data-target-width');
+        if (isInitialLoad) {
+            row.style.opacity = '0';
+            row.style.transform = 'translateY(16px)';
+            setTimeout(() => {
+                row.style.transition = 'opacity 0.4s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)';
+                row.style.opacity = '1';
+                row.style.transform = 'translateY(0)';
+
+                const bar = row.querySelector('.list-storage-bar');
+                if (bar) bar.style.width = bar.getAttribute('data-target-width');
+            }, index * 35);
+        }
     });
 
     if (!isInitialLoad) {
@@ -324,6 +299,10 @@ function renderManagerList(isInitialLoad = false) {
                     el.style.transition = 'transform 0.55s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.4s ease';
                     el.style.transform = 'translateY(0)';
                     el.style.opacity = '1';
+                });
+
+                content.querySelectorAll('.list-storage-bar').forEach(bar => {
+                    bar.style.width = bar.getAttribute('data-target-width');
                 });
             });
         });
@@ -369,165 +348,7 @@ async function deleteSSD(recordId, ssdName) {
     }
 }
 
-function openScanner() {
-    document.getElementById('scanner-overlay').classList.add('active');
-    isScannerActive = true;
-    lastUUID = "";
-
-    const arStorageBar = document.getElementById('ar-storage-bar');
-    if (arStorageBar) {
-        arStorageBar.style.transition = 'none';
-        arStorageBar.style.width = '0%';
-    }
-
-    navigator.mediaDevices.getUserMedia(cameraConstraints)
-        .then(function(stream) {
-            cameraStream = stream;
-            video.srcObject = stream;
-            video.setAttribute("playsinline", true);
-            video.play();
-            requestAnimationFrame(tick);
-        })
-        .catch(function(err) {
-            navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-                .then(function(stream) {
-                    cameraStream = stream;
-                    video.srcObject = stream;
-                    video.play();
-                    requestAnimationFrame(tick);
-                })
-                .catch(function(fallbackErr) {
-                    alert("Kamerazugriff verweigert.");
-                    closeScanner();
-                });
-        });
-}
-
-function closeScanner() {
-    isScannerActive = false;
-    document.getElementById('scanner-overlay').classList.remove('active');
-    document.getElementById('ar-card').classList.remove('active');
-
-    if (cameraStream) {
-        cameraStream.getTracks().forEach(track => track.stop());
-        cameraStream = null;
-    }
-    video.srcObject = null;
-    lastUUID = "";
-    fetchDatabase();
-}
-
-function tick() {
-    if (!isScannerActive) return;
-
-    if (isFetching) {
-        requestAnimationFrame(tick);
-        return;
-    }
-
-    if (video.readyState === video.HAVE_ENOUGH_DATA) {
-        canvas.height = video.videoHeight;
-        canvas.width = video.videoWidth;
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const code = jsQR(imageData.data, imageData.width, imageData.height, {
-            inversionAttempts: "dontInvert",
-        });
-
-        if (code && code.data) {
-            const scannedUUID = code.data.trim();
-            if (scannedUUID.length > 5) {
-                handleQRDetected(scannedUUID);
-                if (scannedUUID === lastUUID) {
-                    resetClearTimer();
-                }
-            }
-        }
-    }
-    requestAnimationFrame(tick);
-}
-
-async function handleQRDetected(uuid) {
-    if (uuid === lastUUID || isFetching) return;
-    if (clearTimer) clearTimeout(clearTimer);
-    isFetching = true;
-    lastUUID = uuid;
-
-    const card = document.getElementById('ar-card');
-    const nameEl = document.getElementById('ssd-name');
-    const speicherEl = document.getElementById('ssd-speicher');
-    const ordnerEl = document.getElementById('ssd-ordner');
-    const updateEl = document.getElementById('ssd-update');
-    const arStorageBar = document.getElementById('ar-storage-bar');
-
-    if (arStorageBar) {
-        arStorageBar.style.transition = 'none';
-        arStorageBar.style.width = '0%';
-    }
-
-    card.classList.add('active');
-    card.style.borderColor = '#00663a';
-    nameEl.innerText = "Verbinde mit Database...";
-    speicherEl.innerText = "UUID erkannt: " + uuid.substring(0,8) + "...";
-    ordnerEl.innerHTML = '<div class="no-folders">Lade Ordnerstruktur...</div>';
-    updateEl.innerText = "-";
-
-    try {
-        const response = await fetch(`https://api.airtable.com/v0/${baseId}/${tableName}?filterByFormula={UUID}='${uuid}'`, {
-            headers: { Authorization: `Bearer ${airtableToken}` }
-        });
-        const data = await response.json();
-
-        if (data.records && data.records.length > 0) {
-            const fields = data.records[0].fields;
-            const company = fields.Firma || "MNAU";
-            const brandColor = company === "Gecko" ? "#29ABE2" : "#00663a";
-
-            const storageInfo = parseStorageData(fields.Speicher);
-            let barColor = '#2ecc71';
-            if (storageInfo.percentUsed >= 90) barColor = '#e74c3c';
-            else if (storageInfo.percentUsed >= 70) barColor = '#f1c40f';
-
-            nameEl.innerText = fields.Name || "Unbenannte SSD";
-            speicherEl.innerText = cleanStorageUnits(fields.Speicher);
-            ordnerEl.innerHTML = generateFolderHTML(fields.Ordner, company, "");
-            updateEl.innerText = "Zuletzt aktualisiert: " + (fields.Updates || "-");
-            card.style.borderColor = brandColor;
-
-            // REPARIERT: Der Stagger-Effekt! Verhindert das Ruckeln auf Smartphones, indem er wartet, bis die Karte oben steht.
-            if (arStorageBar) {
-                arStorageBar.style.backgroundColor = barColor;
-                arStorageBar.style.width = '0%';
-                arStorageBar.offsetWidth; // Layout Flush im Nullzustand erzwingen
-
-                setTimeout(() => {
-                    arStorageBar.style.transition = 'width 0.7s cubic-bezier(0.16, 1, 0.3, 1)';
-                    arStorageBar.style.width = `${storageInfo.percentUsed}%`;
-                }, 250); // 250ms Pause trennt die Karten-Animation geometrisch von der Balken-Animation!
-            }
-        } else {
-            nameEl.innerText = "Unbekannte SSD";
-            speicherEl.innerText = "Gescannte ID: " + uuid;
-            ordnerEl.innerHTML = '<div class="no-folders">Nicht in Database registriert.</div>';
-            card.style.borderColor = '#ff3333';
-        }
-    } catch (error) {
-        nameEl.innerText = "Verbindungsfehler";
-        speicherEl.innerText = "Server nicht erreichbar.";
-    } finally {
-        isFetching = false;
-        resetClearTimer();
-    }
-}
-
-function resetClearTimer() {
-    if (clearTimer) clearTimeout(clearTimer);
-    clearTimer = setTimeout(() => {
-        document.getElementById('ar-card').classList.remove('active');
-        lastUUID = "";
-    }, 6000);
-}
-
+// Bindet alle lokalen und importierten UI-Methoden sicher an den globalen Window-Scope für index.html
 window.openScanner = openScanner;
 window.closeScanner = closeScanner;
 window.renderManagerList = renderManagerList;
