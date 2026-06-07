@@ -1,9 +1,7 @@
-/* HTML5 Off-Screen Canvas Label Generator - MIT SMARTEM WORT-UMBRUCH */
+/* Off-Screen Canvas Label Generator mit intelligentem Textumbruch */
 export async function generateLabelPNG(name, uuid) {
     try {
         const selectedCompany = document.getElementById(`logo-select-${uuid}`).value;
-        
-        // REPARIERT: Angepasste Bild-Pfade für die Logos innerhalb der neuen Struktur
         const selectedLogoFile = selectedCompany === "Gecko" ? "assets/img/gecko_logo.svg" : "assets/img/mnau_logo.svg";
         const qrDataUrl = await QRCode.toDataURL(uuid, { margin: 1, width: 340 });
 
@@ -19,14 +17,14 @@ export async function generateLabelPNG(name, uuid) {
         logoImg.src = selectedLogoFile;
         await new Promise((resolve, reject) => {
             logoImg.onload = resolve;
-            logoImg.onerror = () => reject(new Error(`Logo fehlt unter: ${selectedLogoFile}`));
+            logoImg.onerror = () => reject(new Error(`Logo fehlt: ${selectedLogoFile}`));
         });
-        
+
         lCtx.drawImage(logoImg, 15, 40, 270, 270);
         lCtx.fillStyle = '#000000';
         lCtx.textAlign = 'center';
         lCtx.textBaseline = 'middle';
-        
+
         const maxWidth = 270;
         const words = name.split(' ');
         let bestLines = [name];
@@ -75,7 +73,7 @@ export async function generateLabelPNG(name, uuid) {
         if (bestLines.length === 1) {
             lCtx.fillText(bestLines[0], 150, 420);
         } else {
-            const lineSpacing = targetFontSize * 1.25; 
+            const lineSpacing = targetFontSize * 1.25;
             lCtx.fillText(bestLines[0], 150, 420 - (lineSpacing / 2));
             lCtx.fillText(bestLines[1], 150, 420 + (lineSpacing / 2));
         }

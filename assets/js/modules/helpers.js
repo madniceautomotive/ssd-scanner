@@ -11,7 +11,7 @@ export function cleanStorageUnits(speicherStr) {
         .replace(/\bM\b/g, 'MB');
 }
 
-/* Berechnet Speicher-Prozentwerte für die Fortschrittsbalken */
+/* Berechnet Prozentwerte für den Speicherfortschritt */
 export function parseStorageData(speicherStr) {
     const result = { percentUsed: 0, freeMB: 0 };
     if (!speicherStr) return result;
@@ -33,7 +33,7 @@ export function parseStorageData(speicherStr) {
 
     const freeMB = toMB(freeVal, freeUnit);
     const totalMB = toMB(totalVal, totalUnit);
-    
+
     if (totalMB > 0) {
         const usedMB = totalMB - freeMB;
         result.percentUsed = Math.max(0, Math.min(100, (usedMB / totalMB) * 100));
@@ -42,16 +42,16 @@ export function parseStorageData(speicherStr) {
     return result;
 }
 
-/* Ordner-Parser mit integrierter Treffer-Hoisting-Sortierung und digitalem Systemmüll-Filter */
+/* Ordner-Parser mit Treffer-Hoisting-Sortierung und digitalem Systemmüll-Filter */
 export function generateFolderHTML(ordnerStr, company, searchTerm = "") {
     if (!ordnerStr || ordnerStr.trim() === "" || ordnerStr.includes("(Leer)")) {
         return '<div class="no-folders">Keine Ordner vorhanden</div>';
     }
-    
+
     const folderArray = ordnerStr.split(/\\n|\n/).filter(Boolean).map(f => f.trim());
     if (folderArray.length === 0) return '<div class="no-folders">Keine Ordner vorhanden</div>';
-    
-    // System-Müll-Filter
+
+    // System-Müll-Filter (Mac & Windows Geisterdateien übergehen)
     const exactBlacklist = ['desktop.ini', 'thumbs.db'];
     const partialBlacklist = ['system volume information', 'recycle.bin', 'fseventsd', 'spotlight-v100'];
 
@@ -71,20 +71,20 @@ export function generateFolderHTML(ordnerStr, company, searchTerm = "") {
             isMatched: searchTerm !== "" && folder.toLowerCase().includes(searchTerm)
         };
     });
-    
-    // Treffer an Position 1 reihung (Hoisting)
+
+    // Treffer ganz oben einreihen
     folderObjects.sort((a, b) => {
         if (a.isMatched && !b.isMatched) return -1;
         if (!a.isMatched && b.isMatched) return 1;
         return 0;
     });
-    
+
     const iconColor = company === "Gecko" ? "#29ABE2" : "#00663a";
-    
+
     return folderObjects.map((folderObj, index) => {
         const isMatched = folderObj.isMatched;
         const highlightClass = isMatched ? "highlighted-folder" : "";
-        
+
         return `
             <div class="folder-item ${highlightClass}" style="animation-delay: ${index * 0.03}s;">
                 <svg class="folder-icon" style="fill: ${isMatched ? (company === 'Gecko' ? '#121212' : '#ffffff') : iconColor};" viewBox="0 0 24 24">

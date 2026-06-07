@@ -4,62 +4,73 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>MNAU SSD AR-Scanner</title>
-    
+
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.4.4/build/qrcode.min.js"></script>
-    
+
     <link rel="icon" type="image/png" href="assets/img/logo.png">
     <link rel="apple-touch-icon" href="assets/img/logo.png">
     <link rel="apple-touch-icon" sizes="152x152" href="assets/img/logo.png">
-    
+
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
 
-    <div id="loading-overlay">
-        <div class="spinner"></div>
-        MNAU HUD wird geladen...
-    </div>
+<div id="loading-overlay">
+    <div class="spinner"></div>
+    MNAU HUD wird geladen...
+</div>
 
-    <div id="database-view">
-        <div class="database-header">
-            <h1>MNAU Database</h1>
-            <div class="search-group">
-                <input type="text" id="db-search" class="search-input" placeholder="SSD oder Ordner suchen..." oninput="renderManagerList()">
-            </div>
-            <div class="sort-group">
-                <label for="db-sort">Sortieren:</label>
-                <select id="db-sort" class="sort-select" onchange="renderManagerList()">
-                    <option value="name">Name</option>
-                    <option value="storage">Freier Speicher</option>
-                </select>
-            </div>
+<div id="database-view">
+    <div class="database-header">
+        <h1>MNAU Database</h1>
+
+        <div class="search-group">
+            <input type="text" id="db-search" class="search-input" placeholder="SSD oder Ordner suchen..." oninput="renderManagerList()">
         </div>
-        <div id="manager-content" class="manager-content"></div>
-    </div>
 
-    <div class="fab-camera-trigger" onclick="openScanner()" title="QR-Scanner starten">
-        <svg viewBox="0 0 24 24">
-            <path d="M4 4h3l2-2h6l2 2h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm8 3a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6z"/>
-        </svg>
-    </div>
+        <div class="allocation-group">
+            <label for="db-alloc-val">Daten verteilen:</label>
+            <input type="number" id="db-alloc-val" class="search-input alloc-input" placeholder="z.B. 2" oninput="renderManagerList()">
+            <select id="db-alloc-unit" class="sort-select alloc-unit" onchange="renderManagerList()">
+                <option value="TB">TB</option>
+                <option value="GB">GB</option>
+            </select>
+        </div>
 
-    <div id="scanner-overlay">
-        <button class="close-scanner-btn" onclick="closeScanner()">Scanner Schließen</button>
-        <video id="video" playsinline></video>
-        <canvas id="canvas" style="display:none;"></canvas>
-        <div class="scan-container">
-            <div class="scan-region"></div>
-            <div id="ar-card" class="ar-card">
-                <h2 id="ssd-name">-</h2>
-                <div id="ssd-speicher" class="speicher-info">-</div>
-                <div class="folder-title">Hauptordner:</div>
-                <div id="ssd-ordner" class="folder-list">-</div>
-                <div id="ssd-update" class="update-time">-</div>
-            </div>
+        <div class="sort-group">
+            <label for="db-sort">Sortieren:</label>
+            <select id="db-sort" class="sort-select" onchange="renderManagerList()">
+                <option value="name">Name</option>
+                <option value="storage">Freier Speicher</option>
+            </select>
         </div>
     </div>
+    <div id="manager-content" class="manager-content"></div>
+</div>
 
-    <script type="module" src="assets/js/app.js"></script>
+<div class="fab-camera-trigger" onclick="openScanner()" title="QR-Scanner starten">
+    <svg viewBox="0 0 24 24">
+        <path d="M4 4h3l2-2h6l2 2h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm8 3a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6z"/>
+    </svg>
+</div>
+
+<div id="scanner-overlay">
+    <button class="close-scanner-btn" onclick="closeScanner()">Scanner Schließen</button>
+    <video id="video" playsinline></video>
+    <canvas id="canvas" style="display:none;"></canvas>
+    <div class="scan-container">
+        <div class="scan-region"></div>
+        <div id="ar-card" class="ar-card">
+            <h2 id="ssd-name">-</h2>
+            <div id="ssd-speicher" class="speicher-info">-</div>
+            <div class="folder-title">Hauptordner:</div>
+            <div id="ssd-ordner" class="folder-list">-</div>
+            <div id="ssd-update" class="update-time">-</div>
+        </div>
+    </div>
+</div>
+
+<script type="module" src="assets/js/app.js"></script>
 </body>
 </html>

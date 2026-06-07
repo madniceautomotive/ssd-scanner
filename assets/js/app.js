@@ -1,4 +1,3 @@
-// Importiert Berechnungen und Druck-Logiken aus den Modulen
 import { cleanStorageUnits, parseStorageData, generateFolderHTML } from './modules/helpers.js';
 import { generateLabelPNG } from './modules/printer.js';
 
@@ -8,10 +7,10 @@ const ctx = canvas.getContext('2d');
 let lastUUID = "";
 let isFetching = false;
 let clearTimer = null;
-let databaseRecords = []; 
+let databaseRecords = [];
 
-let cameraStream = null;      
-let isScannerActive = false;   
+let cameraStream = null;
+let isScannerActive = false;
 
 // Airtable Konfiguration
 const airtableToken = "pat4ytEWExJctNU62.59f8c764a353cf3d3571ea45e9d0d2e713e95a5a83499e97c5770f60850170b9";
@@ -39,7 +38,7 @@ async function fetchDatabase() {
         });
         const data = await response.json();
         databaseRecords = data.records || [];
-        renderManagerList(true); 
+        renderManagerList(true);
         document.getElementById('loading-overlay').style.display = 'none';
     } catch (error) {
         document.getElementById('loading-overlay').innerText = "Fehler beim Laden der Airtable-Datenbank.";
@@ -52,7 +51,7 @@ function renderManagerList(isInitialLoad = false) {
     const sortBy = document.getElementById('db-sort').value;
     const searchTerm = document.getElementById('db-search').value.toLowerCase().trim();
 
-    // FLIP - PHASE 1: FIRST
+    // FLIP - PHASE 1: FIRST (Alte Positionen sichern)
     const firstPositions = {};
     if (!isInitialLoad) {
         content.querySelectorAll('[data-flip-id]').forEach(el => {
@@ -63,10 +62,10 @@ function renderManagerList(isInitialLoad = false) {
 
     let processedRecords = databaseRecords.filter(record => {
         const f = record.fields;
-        return (f.Name || '').toLowerCase().includes(searchTerm) || 
-               (f.Speicher || '').toLowerCase().includes(searchTerm) || 
-               (f.Ordner || '').toLowerCase().includes(searchTerm) || 
-               (f.Firma || 'MNAU').toLowerCase().includes(searchTerm);
+        return (f.Name || '').toLowerCase().includes(searchTerm) ||
+            (f.Speicher || '').toLowerCase().includes(searchTerm) ||
+            (f.Ordner || '').toLowerCase().includes(searchTerm) ||
+            (f.Firma || 'MNAU').toLowerCase().includes(searchTerm);
     });
 
     if (processedRecords.length === 0) {
@@ -88,6 +87,57 @@ function renderManagerList(isInitialLoad = false) {
     }
 
     content.innerHTML = '';
+
+    // SPEICHER-ALLOKATIONS-RECHNER MODULE
+    const allocVal = parseFloat(document.getElementById('db-alloc-val').value);
+    const allocUnit = document.getElementById('db-alloc-unit').value;
+    let targetMB = 0;
+    let recommendedIds = new Set();
+
+    if (!isNaN(allocVal) && allocVal > 0) {
+        targetMB = allocUnit === "TB" ? allocVal * 1024 * 1024 : allocVal * 1024;
+        let singleFits = processedRecords.filter(r => parseStorageData(r.fields.Speicher).freeMB >= targetMB);
+        let suggestionHTML = `<h3>💾 MNAU Speicher-Allokation (${allocVal} ${allocUnit})</h3>`;
+
+        if (singleFits.length > 0) {
+            suggestionHTML += `<p>➔ Folgende SSDs bieten <span class="alloc-highlight-green">einzeln</span> genügend freien Speicherplatz:</p><div class="alloc-chip-container">`;
+            singleFits.forEach(r => {
+                suggestionHTML += `<span class="alloc-target-chip">${r.fields.Name}</span>`;
+                recommendedIds.add(r.id);
+            });
+            suggestionHTML += `</div>`;
+        } else {
+            let sortedForCombo = [...processedRecords].sort((a, b) => parseStorageData(b.fields.Speicher).freeMB - parseStorageData(a.fields.Speicher).freeMB);
+            let comboSelected = [];
+            let accumulatedMB = 0;
+
+            for (let r of sortedForCombo) {
+                let freeMB = parseStorageData(r.fields.Speicher).freeMB;
+                if (freeMB > 0) {
+                    comboSelected.push(r);
+                    accumulatedMB += freeMB;
+                    recommendedIds.add(r.id);
+                    if (accumulatedMB >= targetMB) break;
+                }
+            }
+
+            if (accumulatedMB >= targetMB) {
+                suggestionHTML += `<p>➔ Keine einzelne SSD groß genug. Daten <span class="alloc-highlight-blue">aufteilen empfohlen</span> auf folgende Units:</p><div class="alloc-chip-container">`;
+                comboSelected.forEach(r => { suggestionHTML += `<span class="alloc-target-chip">${r.fields.Name}</span>`; });
+                suggestionHTML += `</div>`;
+            } else {
+                let missingMB = targetMB - accumulatedMB;
+                let missingStr = missingMB >= 1048576 ? `${(missingMB / 1048576).toFixed(2)} TB` : `${(missingMB / 1024).toFixed(0)} GB`;
+                suggestionHTML += `<p class="alloc-error">⚠️ <strong>SPEICHER-ENGPASS:</strong> Selbst kombiniert reicht der Platz nicht aus! Fehlend: <strong>${missingStr}</strong>.</p>`;
+            }
+        }
+
+        const sugBox = document.createElement('div');
+        sugBox.className = 'suggestion-box';
+        sugBox.innerHTML = suggestionHTML;
+        content.appendChild(sugBox);
+    }
+
     let lastCompanySeen = null;
 
     processedRecords.forEach((record, index) => {
@@ -107,19 +157,20 @@ function renderManagerList(isInitialLoad = false) {
 
         const brandClass = currentFirma === "Gecko" ? "gecko-brand" : "mnau-brand";
         const storageInfo = parseStorageData(f.Speicher);
-        
-        let barColor = '#2ecc71'; 
-        if (storageInfo.percentUsed >= 90) barColor = '#e74c3c'; 
-        else if (storageInfo.percentUsed >= 70) barColor = '#f1c40f'; 
+
+        let barColor = '#2ecc71';
+        if (storageInfo.percentUsed >= 90) barColor = '#e74c3c';
+        else if (storageInfo.percentUsed >= 70) barColor = '#f1c40f';
 
         const ordnerText = (f.Ordner || '').toLowerCase();
         const hasMatchingFolder = searchTerm !== "" && ordnerText.includes(searchTerm);
         const autoOpenAttribute = hasMatchingFolder ? "open" : "";
+        const isRecommended = recommendedIds.has(record.id) ? "recommended-alloc-row" : "";
 
         const row = document.createElement('div');
-        row.className = `ssd-row ${brandClass}`;
+        row.className = `ssd-row ${brandClass} ${isRecommended}`;
         row.setAttribute('data-flip-id', record.id);
-        
+
         if (isInitialLoad) {
             row.style.opacity = '0';
             row.style.transform = 'translateY(16px)';
@@ -129,11 +180,14 @@ function renderManagerList(isInitialLoad = false) {
                 row.style.transform = 'translateY(0)';
             }, index * 35);
         }
-        
+
         row.innerHTML = `
             <div class="ssd-row-header">
                 <div class="ssd-info-block">
-                    <div class="ssd-row-title">${f.Name}</div>
+                    <div class="ssd-row-title">
+                        ${f.Name}
+                        ${recommendedIds.has(record.id) ? '<span class="alloc-row-badge">✓ Empfohlen</span>' : ''}
+                    </div>
                     <div class="ssd-row-meta">Speicher: ${cleanStorageUnits(f.Speicher)}</div>
                     <div class="storage-bar-container">
                         <div class="storage-bar" style="width: ${storageInfo.percentUsed}%; background-color: ${barColor};"></div>
@@ -158,7 +212,7 @@ function renderManagerList(isInitialLoad = false) {
         content.appendChild(row);
     });
 
-    // FLIP - PHASE 2, 3 & 4: LAST, INVERT & PLAY
+    // FLIP - PHASE 2, 3 & 4: PLAY
     if (!isInitialLoad) {
         content.querySelectorAll('[data-flip-id]').forEach(el => {
             const id = el.getAttribute('data-flip-id');
@@ -170,10 +224,7 @@ function renderManagerList(isInitialLoad = false) {
                     el.style.transition = 'none';
                     el.style.transform = `translateY(${dy}px)`;
                 }
-            } else {
-                el.style.opacity = '0';
-                el.style.transform = 'translateY(15px)';
-            }
+            } else { el.style.opacity = '0'; el.style.transform = 'translateY(15px)'; }
         });
 
         requestAnimationFrame(() => {
@@ -202,9 +253,7 @@ async function updateCompanyField(recordId, newFirma) {
             },
             body: JSON.stringify({ fields: { "Firma": newFirma } })
         });
-    } catch (error) {
-        console.error("Airtable-Hintergrundsync fehlgeschlagen:", error);
-    }
+    } catch (error) { console.error(error); }
 }
 
 function openScanner() {
@@ -223,15 +272,9 @@ function openScanner() {
         .catch(function(err) {
             navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
                 .then(function(stream) {
-                    cameraStream = stream;
-                    video.srcObject = stream;
-                    video.play();
-                    requestAnimationFrame(tick);
+                    cameraStream = stream; video.srcObject = stream; video.play(); requestAnimationFrame(tick);
                 })
-                .catch(function(fallbackErr) {
-                    alert("Kamerazugriff verweigert.");
-                    closeScanner();
-                });
+                .catch(function() { alert("Kamerazugriff verweigert."); closeScanner(); });
         });
 }
 
@@ -250,23 +293,18 @@ function closeScanner() {
 
 function tick() {
     if (!isScannerActive) return;
-
     if (video.readyState === video.HAVE_ENOUGH_DATA) {
         canvas.height = video.videoHeight;
         canvas.width = video.videoWidth;
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const code = jsQR(imageData.data, imageData.width, imageData.height, {
-            inversionAttempts: "dontInvert",
-        });
+        const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
 
         if (code && code.data) {
             const scannedUUID = code.data.trim();
             if (scannedUUID.length > 5) {
                 handleQRDetected(scannedUUID);
-                if (scannedUUID === lastUUID) {
-                    resetClearTimer();
-                }
+                if (scannedUUID === lastUUID) resetClearTimer();
             }
         }
     }
@@ -285,7 +323,7 @@ async function handleQRDetected(uuid) {
     const ordnerEl = document.getElementById('ssd-ordner');
     const updateEl = document.getElementById('ssd-update');
 
-    card.classList.add('active'); 
+    card.classList.add('active');
     card.style.borderColor = '#00663a';
     nameEl.innerText = "Verbinde mit Airtable...";
     speicherEl.innerText = "UUID erkannt: " + uuid.substring(0,8) + "...";
@@ -306,7 +344,7 @@ async function handleQRDetected(uuid) {
             nameEl.innerText = fields.Name || "Unbenannte SSD";
             speicherEl.innerText = cleanStorageUnits(fields.Speicher);
             ordnerEl.innerHTML = generateFolderHTML(fields.Ordner, company, "");
-            updateEl.innerText = "Zulterzt aktualisiert: " + (fields.Updates || "-");
+            updateEl.innerText = "Zuletzt aktualisiert: " + (fields.Updates || "-");
             card.style.borderColor = brandColor;
         } else {
             nameEl.innerText = "Unbekannte SSD";
@@ -326,12 +364,12 @@ async function handleQRDetected(uuid) {
 function resetClearTimer() {
     if (clearTimer) clearTimeout(clearTimer);
     clearTimer = setTimeout(() => {
-        document.getElementById('ar-card').classList.remove('active'); 
+        document.getElementById('ar-card').classList.remove('active');
         lastUUID = "";
-    }, 6000); 
+    }, 6000);
 }
 
-// CRITICAL INTERFACE BRIDGE: Da ES6-Module geschützte Scopes haben, binden wir die HTML-Klick-Trigger händisch an das globale Window-Objekt
+// Global Window Bindings für ES6 Modul-Scope
 window.openScanner = openScanner;
 window.closeScanner = closeScanner;
 window.renderManagerList = renderManagerList;
