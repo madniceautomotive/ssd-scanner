@@ -8,11 +8,11 @@
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.4.4/build/qrcode.min.js"></script>
     
-    <link rel="icon" type="image/png" href="logo.png">
-    <link rel="apple-touch-icon" href="logo.png">
-    <link rel="apple-touch-icon" sizes="152x152" href="logo.png">
+    <link rel="icon" type="image/png" href="assets/img/logo.png">
+    <link rel="apple-touch-icon" href="assets/img/logo.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="assets/img/logo.png">
     
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
 
@@ -24,11 +24,9 @@
     <div id="database-view">
         <div class="database-header">
             <h1>MNAU Database</h1>
-            
             <div class="search-group">
                 <input type="text" id="db-search" class="search-input" placeholder="SSD oder Ordner suchen..." oninput="renderManagerList()">
             </div>
-            
             <div class="sort-group">
                 <label for="db-sort">Sortieren:</label>
                 <select id="db-sort" class="sort-select" onchange="renderManagerList()">
@@ -37,7 +35,6 @@
                 </select>
             </div>
         </div>
-        
         <div id="manager-content" class="manager-content"></div>
     </div>
 
@@ -49,13 +46,10 @@
 
     <div id="scanner-overlay">
         <button class="close-scanner-btn" onclick="closeScanner()">Scanner Schließen</button>
-
         <video id="video" playsinline></video>
         <canvas id="canvas" style="display:none;"></canvas>
-
         <div class="scan-container">
             <div class="scan-region"></div>
-            
             <div id="ar-card" class="ar-card">
                 <h2 id="ssd-name">-</h2>
                 <div id="ssd-speicher" class="speicher-info">-</div>
@@ -66,6 +60,6 @@
         </div>
     </div>
 
-    <script src="app.js"></script>
+    <script type="module" src="assets/js/app.js"></script>
 </body>
 </html>
