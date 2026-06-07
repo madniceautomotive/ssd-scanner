@@ -34,6 +34,9 @@
         <div class="header-controls-row">
             <div class="search-group">
                 <input type="text" id="db-search" class="search-input" placeholder="Schnellsuche für SSD oder Ordner..." oninput="renderManagerList()">
+                <button id="search-clear-btn" class="search-clear-btn" onclick="clearSearch()" title="Suche leeren">
+                    <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
+                </button>
             </div>
 
             <div class="sort-group">
@@ -68,7 +71,9 @@
 </div>
 
 <div id="scanner-overlay">
-    <button class="close-scanner-btn" onclick="closeScanner()">Scanner Schließen</button>
+    <button class="close-scanner-btn" onclick="closeScanner()" title="Scanner schließen">
+        <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
+    </button>
     <video id="video" playsinline></video>
     <canvas id="canvas" style="display:none;"></canvas>
     <div class="scan-container">

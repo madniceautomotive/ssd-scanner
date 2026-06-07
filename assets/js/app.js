@@ -13,7 +13,7 @@ let databaseRecords = []; // Lokaler Zwischenspeicher für Sortierung/Suche
 let cameraStream = null;
 let isScannerActive = false;
 
-// Database Konfiguration (ehemals Airtable)
+// Database Konfiguration
 const airtableToken = "pat4ytEWExJctNU62.59f8c764a353cf3d3571ea45e9d0d2e713e95a5a83499e97c5770f60850170b9";
 const baseId = "appXKM0UQ8uJLuiNB";
 const tableName = "SSDs";
@@ -38,6 +38,16 @@ function toggleFeatureHub() {
     panel.classList.toggle('active');
 }
 
+/* NEU: Leert das Suchfeld per Klick, setzt den Fokus zurück und aktualisiert die Liste */
+function clearSearch() {
+    const searchInput = document.getElementById('db-search');
+    if (searchInput) {
+        searchInput.value = '';
+        renderManagerList(); // Führt die FLIP-Fluganimation zurück zur ungefilterten Liste aus
+        searchInput.focus(); // Behält den Fokus bei mobiler Nutzung, damit die Tastatur nicht zuklappt
+    }
+}
+
 async function fetchDatabase() {
     try {
         const response = await fetch(`https://api.airtable.com/v0/${baseId}/${tableName}`, {
@@ -48,16 +58,25 @@ async function fetchDatabase() {
         renderManagerList(true);
         document.getElementById('loading-overlay').style.display = 'none';
     } catch (error) {
-        // REPARIERT: Text geändert
         document.getElementById('loading-overlay').innerText = "Fehler beim Laden der Database.";
         console.error(error);
     }
 }
 
+/* HIGH-PERFORMANCE FLIP ENGINE: Filtert, sortiert und berechnet Speicherallokationen */
 function renderManagerList(isInitialLoad = false) {
     const content = document.getElementById('manager-content');
     const sortBy = document.getElementById('db-sort').value;
     const searchTerm = document.getElementById('db-search').value.toLowerCase().trim();
+
+    // ----------------------------------------------------
+    // NEU: SICHTBARKEITS-SCHALTUNG FÜR DAS LÖSCHKREUZ
+    // ----------------------------------------------------
+    const clearBtn = document.getElementById('search-clear-btn');
+    if (clearBtn) {
+        // Das Kreuz erscheint im Suchschlitz nur, wenn wirklich Text drinsteht!
+        clearBtn.style.display = searchTerm !== "" ? "flex" : "none";
+    }
 
     // FLIP - PHASE 1: FIRST
     const firstPositions = {};
@@ -68,6 +87,7 @@ function renderManagerList(isInitialLoad = false) {
         });
     }
 
+    // Filter-Logik für die Suche
     let processedRecords = databaseRecords.filter(record => {
         const f = record.fields;
         return (f.Name || '').toLowerCase().includes(searchTerm) ||
@@ -269,7 +289,6 @@ async function updateCompanyField(recordId, newFirma) {
             body: JSON.stringify({ fields: { "Firma": newFirma } })
         });
     } catch (error) {
-        // REPARIERT: Text geändert
         console.error("Database-Hintergrundsync fehlgeschlagen:", error);
     }
 }
@@ -354,7 +373,6 @@ async function handleQRDetected(uuid) {
 
     card.classList.add('active');
     card.style.borderColor = '#00663a';
-    // REPARIERT: Text geändert
     nameEl.innerText = "Verbinde mit Database...";
     speicherEl.innerText = "UUID erkannt: " + uuid.substring(0,8) + "...";
     ordnerEl.innerHTML = '<div class="no-folders">Lade Ordnerstruktur...</div>';
@@ -379,7 +397,6 @@ async function handleQRDetected(uuid) {
         } else {
             nameEl.innerText = "Unbekannte SSD";
             speicherEl.innerText = "Gescannte ID: " + uuid;
-            // REPARIERT: Text geändert
             ordnerEl.innerHTML = '<div class="no-folders">Nicht in Database registriert.</div>';
             card.style.borderColor = '#ff3333';
         }
@@ -400,9 +417,11 @@ function resetClearTimer() {
     }, 6000);
 }
 
+// Global an Window binden für den HTML-Klick-Trigger
 window.openScanner = openScanner;
 window.closeScanner = closeScanner;
 window.renderManagerList = renderManagerList;
 window.updateCompanyField = updateCompanyField;
 window.generateLabelPNG = generateLabelPNG;
 window.toggleFeatureHub = toggleFeatureHub;
+window.clearSearch = clearSearch; // NEU: Löschfunktion für Window freigeben
