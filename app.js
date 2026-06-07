@@ -5,10 +5,12 @@ let lastUUID = "";
 let isFetching = false;
 let clearTimer = null;
 
-// Sicherheits-Check für fehlende Konfiguration
-if (typeof CONFIG === 'undefined' || CONFIG.airtableToken.includes("HIER")) {
-    alert("Konfigurationsfehler: Bitte erstelle eine gültige config.js basierend auf config.example.js!");
-}
+// ----------------------------------------------------
+// HIER STEHEN DEINE DATEN FELSENFEST IM CODE (Sicher im privaten Repo!)
+const airtableToken = "pat4ytEWExJctNU62.59f8c764a353cf3d3571ea45e9d0d2e713e95a5a83499e97c5770f60850170b9";
+const baseId = "appXKM0UQ8uJLuiNB";
+const tableName = "SSDs";
+// ----------------------------------------------------
 
 navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
     .then(function(stream) {
@@ -66,8 +68,8 @@ async function handleQRDetected(uuid) {
     updateEl.innerText = "-";
 
     try {
-        const response = await fetch(`https://api.airtable.com/v0/${CONFIG.baseId}/${CONFIG.tableName}?filterByFormula={UUID}='${uuid}'`, {
-            headers: { Authorization: `Bearer ${CONFIG.airtableToken}` }
+        const response = await fetch(`https://api.airtable.com/v0/${baseId}/${tableName}?filterByFormula={UUID}='${uuid}'`, {
+            headers: { Authorization: `Bearer ${airtableToken}` }
         });
         const data = await response.json();
 
@@ -111,8 +113,8 @@ async function openManager() {
     content.innerHTML = '<div style="color:#00ffcc; text-align:center; padding:20px;">Lade Airtable-Datenbank...</div>';
 
     try {
-        const response = await fetch(`https://api.airtable.com/v0/${CONFIG.baseId}/${CONFIG.tableName}`, {
-            headers: { Authorization: `Bearer ${CONFIG.CONFIG.airtableToken}` }
+        const response = await fetch(`https://api.airtable.com/v0/${baseId}/${tableName}`, {
+            headers: { Authorization: `Bearer ${airtableToken}` }
         });
         const data = await response.json();
         content.innerHTML = '';
