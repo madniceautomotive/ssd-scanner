@@ -163,7 +163,9 @@ function renderManagerList(isInitialLoad = false) {
         if (singleFits.length > 0) {
             suggestionHTML += `<p>➔ Folgende SSDs bieten <span class="alloc-highlight-green">einzeln</span> genügend freien Speicherplatz:</p><div class="alloc-chip-container">`;
             singleFits.forEach(r => {
-                suggestionHTML += `<span class="alloc-target-chip">${r.fields.Name}</span>`;
+                // REPARIERT: Dynamische Brand-Klasse für den Chip generieren
+                const chipBrandClass = (r.fields.Firma || 'MNAU').toLowerCase() + '-alloc-chip';
+                suggestionHTML += `<span class="alloc-target-chip ${chipBrandClass}">${r.fields.Name}</span>`;
                 recommendedIds.add(r.id);
             });
             suggestionHTML += `</div>`;
@@ -185,7 +187,9 @@ function renderManagerList(isInitialLoad = false) {
             if (accumulatedMB >= targetMB) {
                 suggestionHTML += `<p>➔ Keine einzelne SSD groß genug. Daten <span class="alloc-highlight-blue">aufteilen empfohlen</span> auf folgende Units:</p><div class="alloc-chip-container">`;
                 comboSelected.forEach(r => {
-                    suggestionHTML += `<span class="alloc-target-chip">${r.fields.Name}</span>`;
+                    // REPARIERT: Dynamische Brand-Klasse für den Kombi-Chip generieren
+                    const chipBrandClass = (r.fields.Firma || 'MNAU').toLowerCase() + '-alloc-chip';
+                    suggestionHTML += `<span class="alloc-target-chip ${chipBrandClass}">${r.fields.Name}</span>`;
                 });
                 suggestionHTML += `</div>`;
             } else {
@@ -245,7 +249,6 @@ function renderManagerList(isInitialLoad = false) {
             }, index * 35);
         }
 
-        // UPGRADE: Text im Button von "PNG" zu "Label" geändert
         row.innerHTML = `
             <div class="ssd-row-header">
                 <div class="ssd-info-block">

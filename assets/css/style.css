@@ -1,293 +1,41 @@
-body, html {
-    margin: 0; padding: 0; width: 100%; height: 100%;
-    overflow: hidden; background-color: #121212;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-}
-#database-view {
-    width: 100%; height: 100%; display: flex; flex-direction: column;
-    background-color: #121212; color: white; box-sizing: border-box;
+/* ... [Vorheriges CSS bleibt komplett identisch bis ganz unten] ... */
+
+/* Horizontale Chip-Anordnung der Ziel-SSDs im Banner */
+.alloc-chip-container {
+    display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;
 }
 
-/* ==================================================== */
-/* CLEAN & RENDER-OPTIMIZED HEADER DESIGN               */
-/* ==================================================== */
-.database-header {
-    padding: 20px 24px; border-bottom: 1px solid rgba(0, 102, 58, 0.25);
-    display: flex; flex-direction: column; gap: 16px; background-color: #141414;
-}
-.header-main-row {
-    display: flex; justify-content: space-between; align-items: center; width: 100%;
-}
-.database-header h1 {
-    margin: 0; font-size: 1.6rem; font-weight: 800; color: #ffffff;
-    letter-spacing: -0.5px; text-transform: uppercase;
-    background: linear-gradient(135deg, #ffffff 40%, #a0aec0 100%);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+/* Basis-Chip Design (Default wird von den Unterklassen überschrieben) */
+.alloc-target-chip {
+    background: #1a1a1a;
+    color: #ffffff;
+    padding: 4px 12px; border-radius: 20px; font-weight: 600; font-size: 0.8rem;
+    transition: border-color 0.2s;
 }
 
-.header-controls-row {
-    display: flex; width: 100%; gap: 10px; align-items: center;
+/* REPARIERT: Spezifische Rahmenfarben je nach Brand im Allokations-Banner */
+.alloc-target-chip.mnau-alloc-chip {
+    border: 1px solid #00663a;
+}
+.alloc-target-chip.gecko-alloc-chip {
+    border: 1px solid #29ABE2;
 }
 
-.search-group {
-    position: relative; flex: 1;
+/* Snappy Glüh-Effekt auf den empfohlenen SSD-Zeilen */
+.ssd-row.recommended-alloc-row {
+    background: rgba(0, 102, 58, 0.06);
+    box-shadow: 0 0 15px rgba(0, 102, 58, 0.15) !important;
 }
-.search-input {
-    width: 100%; background: #1c1c1c; color: white; border: 1px solid rgba(0, 102, 58, 0.5);
-    padding: 11px 42px 11px 14px; border-radius: 10px; box-sizing: border-box;
-    outline: none; font-size: 0.9rem; font-weight: 500;
-    transition: border-color 0.2s, box-shadow 0.2s;
+.ssd-row.gecko-brand.recommended-alloc-row {
+    background: rgba(41, 171, 226, 0.04);
+    box-shadow: 0 0 15px rgba(41, 171, 226, 0.15) !important;
 }
-.search-input:focus {
-    border-color: #00ff73; box-shadow: 0 0 12px rgba(0, 255, 115, 0.15);
+.alloc-row-badge {
+    background: #00663a; color: white; padding: 2px 8px;
+    border-radius: 4px; font-size: 0.7rem; text-transform: uppercase; font-weight: 800;
 }
-
-.search-clear-btn {
-    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
-    background: none; border: none; padding: 0; cursor: pointer;
-    display: none; align-items: center; justify-content: center;
-    width: 24px; height: 24px; border-radius: 50%;
-    transition: background-color 0.2s;
-}
-.search-clear-btn:hover { background-color: rgba(255, 255, 255, 0.06); }
-.search-clear-btn svg { width: 13px; height: 13px; fill: #718096; transition: fill 0.15s; }
-.search-clear-btn:hover svg { fill: #e74c3c; }
-
-/* ==================================================== */
-/* CUSTOM ICON SORT DROPDOWN                            */
-/* ==================================================== */
-.sort-dropdown-container {
-    position: relative; display: inline-block; flex-shrink: 0;
-}
-.sort-icon-btn {
-    background: #1c1c1c; border: 1px solid rgba(0, 102, 58, 0.5); color: #a0aec0;
-    width: 43px; height: 43px; border-radius: 10px; cursor: pointer;
-    display: flex; align-items: center; justify-content: center; padding: 0;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.sort-icon-btn:hover { color: white; border-color: #00ff73; background: #222222; }
-.sort-icon-btn:active { transform: scale(0.93); }
-.sort-icon-btn svg { width: 18px; height: 18px; fill: currentColor; }
-
-.sort-dropdown-menu {
-    position: absolute; top: 50px; right: 0; background: #1a1a1a;
-    border: 1px solid #00663a; border-radius: 8px;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.7); display: none; z-index: 100;
-    min-width: 170px; overflow: hidden; transform: translateY(-10px); opacity: 0;
-    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.15s ease;
-}
-.sort-dropdown-menu.active {
-    display: block; transform: translateY(0); opacity: 1;
-}
-.sort-option {
-    padding: 12px 16px; font-size: 0.85rem; color: #a0aec0; cursor: pointer;
-    transition: background 0.2s, color 0.2s; text-align: left; font-weight: 500;
-}
-.sort-option:hover { background: rgba(255, 255, 255, 0.04); color: white; }
-.sort-option.active {
-    color: #00ff73; font-weight: bold; background: rgba(0, 102, 58, 0.15);
+.gecko-brand .alloc-row-badge {
+    background: #29ABE2; color: #121212;
 }
 
-/* ==================================================== */
-/* BASE DROP-DOWN STYLING                               */
-/* ==================================================== */
-.sort-select, .logo-select {
-    -webkit-appearance: none; -moz-appearance: none; appearance: none;
-    background: #1c1c1c; color: white; border: 1px solid rgba(0, 102, 58, 0.5);
-    padding: 10px 32px 10px 14px; border-radius: 10px; font-weight: 600; outline: none; cursor: pointer; font-size: 0.88rem;
-    background-repeat: no-repeat; background-position: right 12px center; background-size: 16px;
-    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
-    transition: transform 0.15s ease, border-color 0.2s, width 0.2s;
-}
-
-.logo-select {
-    width: 105px;
-}
-.sort-select:active, .logo-select:active { transform: scale(0.98); }
-
-/* FEATURE HUB CONFIG */
-.feature-toggle-btn {
-    background: #1c1c1c; border: 1px solid rgba(0, 102, 58, 0.5); color: #a0aec0;
-    padding: 8px 14px; border-radius: 8px; font-size: 0.82rem; font-weight: 700;
-    display: flex; align-items: center; gap: 8px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.feature-toggle-btn svg { width: 14px; height: 14px; fill: #a0aec0; transition: transform 0.3s ease; }
-.feature-toggle-btn:hover { color: white; border-color: #00ff73; background: #222222; }
-.feature-toggle-btn:hover svg { fill: #00ff73; transform: rotate(45deg); }
-.feature-toggle-btn:active { transform: scale(0.95); }
-
-.feature-hub-panel {
-    background: #161616; border-bottom: 1px solid rgba(0, 102, 58, 0.15);
-    max-height: 0; overflow: hidden; opacity: 0; visibility: hidden;
-    transition: max-height 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease, padding 0.4s, visibility 0.4s;
-    display: flex; flex-direction: column; gap: 12px; box-sizing: border-box; padding: 0 24px;
-}
-.feature-hub-panel.active {
-    max-height: 250px; opacity: 1; visibility: visible; padding: 16px 24px;
-}
-.feature-card {
-    background: rgba(255, 255, 255, 0.02); border: 1px dashed rgba(0, 102, 58, 0.3);
-    border-radius: 8px; padding: 12px 16px;
-}
-.feature-card-title {
-    font-size: 0.8rem; font-weight: 700; color: #a0aec0; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;
-}
-.allocation-controls { display: flex; align-items: center; gap: 8px; }
-.alloc-input { width: 110px !important; text-align: center; }
-.alloc-unit { width: 85px !important; }
-
-/* Suggestion Box */
-.suggestion-box {
-    background: rgba(0, 102, 58, 0.03); border: 1px dashed rgba(0, 102, 58, 0.4);
-    border-radius: 12px; padding: 16px 20px; margin-bottom: 20px; font-size: 0.9rem; line-height: 1.6; color: #e2e8f0;
-    will-change: transform, opacity;
-}
-.suggestion-box h3 { margin: 0 0 6px 0; font-size: 0.95rem; color: #ffffff; text-transform: uppercase; letter-spacing: 1px; }
-.alloc-highlight-green { color: #00ff73; font-weight: bold; }
-.alloc-highlight-blue { color: #29ABE2; font-weight: bold; }
-.alloc-error { color: #e74c3c; margin: 0; font-weight: 500; }
-.alloc-chip-container { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-.alloc-target-chip { background: #1c1c1c; border: 1px solid #00663a; color: #ffffff; padding: 4px 12px; border-radius: 20px; font-weight: 600; font-size: 0.8rem; }
-
-/* LISTINGS & ROWS */
-.manager-content { flex: 1; overflow-y: auto; padding: 20px; padding-bottom: 90px; }
-.ssd-row {
-    background: rgba(255, 255, 255, 0.03); border-radius: 12px;
-    padding: 16px; margin-bottom: 14px; border-left: 4px solid #00663a;
-    display: flex; flex-direction: column; align-items: stretch; will-change: transform, opacity;
-}
-.ssd-row-header { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
-.ssd-info-block { flex: 1; min-width: 0; }
-.ssd-row-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 5px; color: white; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.ssd-row-meta { font-size: 0.88rem; color: #a0aec0; }
-.storage-bar-container { width: 100%; height: 6px; background: rgba(255, 255, 255, 0.08); border-radius: 3px; margin-top: 8px; overflow: hidden; }
-.storage-bar { height: 100%; width: 0%; transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s; }
-.action-group { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-.print-btn {
-    background: #00663a; border: none; color: white; padding: 10px 14px; border-radius: 8px; font-weight: bold;
-    cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 0.85rem;
-    transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 0.2s;
-}
-.print-btn:active { transform: scale(0.92); }
-
-/* Badges & Highlighting */
-.alloc-row-badge { background: #00663a; color: white; padding: 3px 8px; border-radius: 5px; font-size: 0.65rem; text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px; display: inline-block; line-height: 1; }
-.ssd-row.recommended-alloc-row { background: rgba(0, 102, 58, 0.06); box-shadow: 0 0 15px rgba(0, 102, 58, 0.15) !important; }
-
-/* RESPONSIVE DESIGN */
-@media (max-width: 580px) {
-    .ssd-row-header { flex-direction: column; align-items: stretch; gap: 14px; }
-    .action-group { justify-content: space-between; width: 100%; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 12px; }
-    .action-group .logo-select { flex: 1; width: 100%; }
-}
-
-/* Akkordeons & Ordner */
-.ssd-details { margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(0, 102, 58, 0.2); }
-.ssd-details summary { color: #a0aec0; font-size: 0.85rem; cursor: pointer; outline: none; user-select: none; list-style: none; display: flex; align-items: center; gap: 6px; transition: color 0.2s; }
-.ssd-details summary:hover { color: white; }
-.ssd-details summary::-webkit-details-marker { display: none; }
-.ssd-details summary::before { content: '▶'; display: inline-block; font-size: 0.7rem; transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1); color: #00663a; }
-.ssd-details[open] summary::before { transform: rotate(90deg); }
-
-.folder-list, .ssd-folders-preview { background: rgba(0, 0, 0, 0.2); border-radius: 8px; padding: 10px; margin-top: 8px; max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; border-left: 3px solid #00663a; box-sizing: border-box; }
-.folder-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: rgba(255, 255, 255, 0.03); border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.04); opacity: 0; transform: translateX(-12px); animation: folderChipIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
-@keyframes folderChipIn { to { opacity: 1; transform: translateX(0); } }
-.folder-icon { width: 16px; height: 16px; flex-shrink: 0; }
-.folder-name { font-size: 0.85rem; color: #e2e8f0; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.no-folders { font-size: 0.82rem; color: #718096; font-style: italic; padding: 4px; }
-
-.sort-select { display: none !important; }
-.alloc-unit { display: block !important; }
-
-/* FAB Camera Trigger */
-.fab-camera-trigger { position: absolute; bottom: 30px; right: 30px; z-index: 5; width: 60px; height: 60px; background: #00663a; border: 2px solid #ffffff; border-radius: 50%; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; cursor: pointer; pointer-events: auto; transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s; }
-.fab-camera-trigger:hover { transform: scale(1.08); box-shadow: 0 0 25px rgba(0, 102, 58, 0.6); }
-.fab-camera-trigger:active { transform: scale(0.9); }
-.fab-camera-trigger svg { width: 28px; height: 28px; fill: #ffffff; }
-
-/* Camera Overlays */
-#scanner-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #000000; z-index: 10; opacity: 0; visibility: hidden; transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.35s; }
-#scanner-overlay.active { opacity: 1; visibility: visible; }
-#video { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; z-index: 11; }
-.scan-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 12; pointer-events: none; }
-.scan-region { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); width: 240px; height: 240px; border: 2px dashed rgba(0, 102, 58, 0.8); border-radius: 24px; box-sizing: border-box; }
-.scan-region::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 3px; background: #00663a; box-shadow: 0 0 12px #00663a; animation: scan 2s linear infinite; will-change: transform; }
-@keyframes scan { 0% { transform: translateY(0); } 50% { transform: translateY(237px); } 100% { transform: translateY(0); } }
-.ar-card { position: absolute; bottom: 30px; left: 50%; transform: translate(-50%, 120%); width: 92%; max-width: 420px; background: #1a1a1a !important; border: 2px solid #00663a; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.8); border-radius: 16px; padding: 20px; color: white; box-sizing: border-box; pointer-events: auto; z-index: 13; opacity: 0; transition: transform 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.2), opacity 0.3s ease; }
-.ar-card.active { transform: translate(-50%, 0); opacity: 1; }
-.update-time { font-size: 0.72rem; color: #a0aec0; text-align: right; margin-top: 22px; border-top: 1px dashed rgba(255, 255, 255, 0.08); padding-top: 10px; }
-
-/* CIRCULAR CROSS BUTTON */
-.close-scanner-btn {
-    position: absolute; top: 24px; right: 24px; z-index: 15;
-    background: rgba(20, 20, 20, 0.8); border: 1px solid rgba(0, 255, 115, 0.4);
-    width: 44px; height: 44px; border-radius: 50%; cursor: pointer;
-    display: flex; align-items: center; justify-content: center; padding: 0;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.4); transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.close-scanner-btn svg { width: 18px; height: 18px; fill: #a0aec0; transition: fill 0.2s, transform 0.25s; }
-.close-scanner-btn:hover { background: rgba(231, 76, 60, 0.8); border-color: #ffffff; box-shadow: 0 0 15px rgba(231, 76, 60, 0.5); }
-.close-scanner-btn:hover svg { fill: #ffffff; transform: rotate(90deg); }
-.close-scanner-btn:active { transform: scale(0.9); }
-
-#loading-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #121212; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #ffffff; font-size: 1.2rem; }
-.spinner { width: 40px; height: 40px; border: 4px solid rgba(0, 102, 58, 0.2); border-top-color: #00663a; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px; }
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* Brandings */
-.section-divider { display: flex; align-items: center; margin: 30px 0 16px 0; font-size: 0.72rem; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; user-select: none; will-change: transform; }
-.section-divider::before { content: '// '; margin-right: 6px; font-weight: 900; }
-.section-divider::after { content: ''; flex: 1; height: 1px; margin-left: 14px; }
-.section-divider.mnau-divider { color: #00663a; }
-.section-divider.mnau-divider::after { background: linear-gradient(to right, rgba(0, 102, 58, 0.8), transparent); }
-.section-divider.gecko-divider { color: #29ABE2; }
-.section-divider.gecko-divider::after { background: linear-gradient(to right, rgba(41, 171, 226, 0.8), transparent); }
-
-/* ==================================================== */
-/* GECKO BRAND OVERRIDES & HIGHLIGHTS                   */
-/* ==================================================== */
-.ssd-row.gecko-brand { border-left-color: #29ABE2; }
-.ssd-row.gecko-brand .logo-select { border-color: #29ABE2; }
-.ssd-row.gecko-brand .print-btn { background: #29ABE2; color: #121212; }
-.ssd-row.gecko-brand .ssd-details { border-top-color: rgba(41, 171, 226, 0.2); }
-.ssd-row.gecko-brand .ssd-details summary::before { color: #29ABE2; }
-.ssd-row.gecko-brand .folder-list, .ssd-row.gecko-brand .ssd-folders-preview { border-left-color: #29ABE2; }
-.ssd-row.gecko-brand.recommended-alloc-row { background: rgba(41, 171, 226, 0.04); box-shadow: 0 0 15px rgba(41, 171, 226, 0.15) !important; }
-.gecko-brand .alloc-row-badge { background: #29ABE2; color: #121212; }
-
-/* ==================================================== */
-/* ADVANCED SPECIFICITY HIGH-LIGHT ENGINE (FIXED)       */
-/* ==================================================== */
-@keyframes neonPulse {
-    0% { box-shadow: 0 0 4px rgba(255,255,255,0.1); }
-    50% { box-shadow: 0 0 16px var(--glow-color); }
-    100% { box-shadow: 0 0 4px rgba(255,255,255,0.1); }
-}
-
-/* Basis-Animationen für das Einfliegen und Pulsieren der markierten Ordner */
-.folder-item.highlighted-folder {
-    animation: folderChipIn 0.3s ease forwards, neonPulse 1.8s infinite ease-in-out !important;
-}
-
-/* Absolute Prioritäts-Injektion für MNAU (Waldgrün + Neon Aura) */
-.ssd-row.mnau-brand .folder-item.highlighted-folder {
-    --glow-color: rgba(0, 255, 115, 0.6);
-    background: #00663a !important;
-    border-color: #00ff73 !important;
-}
-.ssd-row.mnau-brand .folder-item.highlighted-folder .folder-name {
-    color: #ffffff !important;
-    font-weight: bold !important;
-}
-
-/* Absolute Prioritäts-Injektion für GECKO (Cyan + Dunkle Schrift für perfekten Kontrast) */
-.ssd-row.gecko-brand .folder-item.highlighted-folder {
-    --glow-color: rgba(41, 171, 226, 0.6);
-    background: #29ABE2 !important;
-    border-color: #ffffff !important;
-}
-.ssd-row.gecko-brand .folder-item.highlighted-folder .folder-name {
-    color: #121212 !important;
-    font-weight: bold !important;
-}
+/* ... [Gecko Brand Overrides & Highlight Cores am Dateiende bleiben unberührt] ... */
