@@ -7,25 +7,21 @@ import { openScanner, closeScanner, setupScanner } from './modules/scanner.js';
 let databaseRecords = [];
 
 document.addEventListener("DOMContentLoaded", () => {
-    // Scanner mitteilen, welche Funktion nach dem Schließen lautlos aktualisieren soll
     setupScanner(fetchDatabase);
     fetchDatabase();
 });
 
-/* Steuert das geschmeidige Ein- und Ausfahren der Feature-Schublade */
 function toggleFeatureHub() {
     const panel = document.getElementById('feature-hub-panel');
     panel.classList.toggle('active');
 }
 
-/* Schaltet das Custom-Sortier-Dropdown-Menü aktiv oder inaktiv */
 function toggleSortMenu(event) {
     if (event) event.stopPropagation();
     const menu = document.getElementById('sort-dropdown-menu');
     if (menu) menu.classList.toggle('active');
 }
 
-/* Setzt den Sortier-State im versteckten HTML-Feld, steuert die LED-Klassen und triggert den FLIP-Effekt */
 function setSortMode(mode, event) {
     if (event) event.stopPropagation();
 
@@ -47,13 +43,11 @@ function setSortMode(mode, event) {
     renderManagerList(false);
 }
 
-// Schließt das Sortier-Menü automatisch bei einem Klick ins Leere
 document.addEventListener('click', () => {
     const menu = document.getElementById('sort-dropdown-menu');
     if (menu) menu.classList.remove('active');
 });
 
-/* Leert das Suchfeld per Klick, setzt den Fokus zurück und aktualisiert die Liste */
 function clearSearch() {
     const searchInput = document.getElementById('db-search');
     if (searchInput) {
@@ -63,7 +57,6 @@ function clearSearch() {
     }
 }
 
-/* Manueller Refresh-Trigger mit visueller CSS-Rotations-Injektion */
 async function manualRefresh() {
     const refreshBtn = document.getElementById('db-refresh-btn');
     if (refreshBtn) refreshBtn.classList.add('spinning');
@@ -94,7 +87,7 @@ async function fetchDatabase() {
     }
 }
 
-/* HIGH-PERFORMANCE FLIP ENGINE: Sortiert und animiert das Dashboard */
+/* HIGH-PERFORMANCE FLIP ENGINE: Dashboard Renderer */
 function renderManagerList(isInitialLoad = false) {
     const content = document.getElementById('manager-content');
     const sortBy = document.getElementById('db-sort').value;
@@ -146,6 +139,7 @@ function renderManagerList(isInitialLoad = false) {
     let targetMB = 0;
     let recommendedIds = new Set();
 
+    // REPARIERT: Die kaputten HTML-Klammern im Allokations-String wurden wiederhergestellt
     if (!isNaN(allocVal) && allocVal > 0) {
         targetMB = allocUnit === "TB" ? allocVal * 1024 * 1024 : allocVal * 1024;
 
@@ -269,12 +263,16 @@ function renderManagerList(isInitialLoad = false) {
                 row.style.transition = 'opacity 0.4s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)';
                 row.style.opacity = '1';
                 row.style.transform = 'translateY(0)';
-
-                const bar = row.querySelector('.list-storage-bar');
-                if (bar) bar.style.width = bar.getAttribute('data-target-width');
             }, index * 35);
         }
     });
+
+    // REPARIERT: Unfehlbarer Sync-Trigger. Sobald das DOM steht, füllen sich alle Balken parallel auf!
+    setTimeout(() => {
+        content.querySelectorAll('.list-storage-bar').forEach(bar => {
+            bar.style.width = bar.getAttribute('data-target-width');
+        });
+    }, 100);
 
     if (!isInitialLoad) {
         content.querySelectorAll('[data-flip-id]').forEach(el => {
@@ -299,10 +297,6 @@ function renderManagerList(isInitialLoad = false) {
                     el.style.transition = 'transform 0.55s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.4s ease';
                     el.style.transform = 'translateY(0)';
                     el.style.opacity = '1';
-                });
-
-                content.querySelectorAll('.list-storage-bar').forEach(bar => {
-                    bar.style.width = bar.getAttribute('data-target-width');
                 });
             });
         });
@@ -348,7 +342,6 @@ async function deleteSSD(recordId, ssdName) {
     }
 }
 
-// Bindet alle lokalen und importierten UI-Methoden sicher an den globalen Window-Scope für index.html
 window.openScanner = openScanner;
 window.closeScanner = closeScanner;
 window.renderManagerList = renderManagerList;

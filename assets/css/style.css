@@ -1,3 +1,6 @@
+/* ==================================================== */
+/* 1. GLOBAL RESET & BASE CYBERPUNK THEME              */
+/* ==================================================== */
 body, html {
     margin: 0; padding: 0; width: 100%; height: 100%;
     overflow: hidden; background-color: #121212;
@@ -8,6 +11,9 @@ body, html {
     background-color: #121212; color: white; box-sizing: border-box;
 }
 
+/* ==================================================== */
+/* 2. DYNAMIC HEADER & HUD INTERACTION BARS            */
+/* ==================================================== */
 .database-header {
     padding: 20px 24px; border-bottom: 1px solid rgba(0, 102, 58, 0.25);
     display: flex; flex-direction: column; gap: 16px; background-color: #141414;
@@ -92,6 +98,9 @@ body, html {
 .logo-select { width: 105px; }
 .sort-select:active, .logo-select:active { transform: scale(0.98); }
 
+/* ==================================================== */
+/* 4. EXTENDABLE FEATURE HUB DRAWERS STYLING            */
+/* ==================================================== */
 .feature-toggle-btn {
     background: #1c1c1c; border: 1px solid rgba(0, 102, 58, 0.5); color: #a0aec0;
     padding: 8px 14px; border-radius: 8px; font-size: 0.82rem; font-weight: 700;
@@ -141,6 +150,9 @@ body, html {
 .alloc-target-chip.mnau-alloc-chip { border: 1px solid #00663a; }
 .alloc-target-chip.gecko-alloc-chip { border: 1px solid #29ABE2; }
 
+/* ==================================================== */
+/* 5. DATABASE SSD ROWS & STORAGE BARS                  */
+/* ==================================================== */
 .manager-content { flex: 1; overflow-y: auto; padding: 20px; padding-bottom: 90px; }
 .ssd-row {
     background: rgba(255, 255, 255, 0.03); border-radius: 12px;
@@ -152,20 +164,13 @@ body, html {
 .ssd-row-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 5px; color: white; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .ssd-row-meta { font-size: 0.88rem; color: #a0aec0; }
 
-/* ==================================================== */
-/* HIGH-PERFORMANCE GPU STORAGE BARS                   */
-/* ==================================================== */
 .storage-bar-container {
     width: 100%; height: 6px; background: rgba(255, 255, 255, 0.08);
     border-radius: 3px; margin-top: 8px; overflow: hidden;
 }
-/* TUNING: scaleX läuft direkt über den Compositor-Thread der Grafikkarte */
 .storage-bar {
-    height: 100%; width: 100%;
-    transform-origin: left;
-    transform: scaleX(0); /* Startet bei 0 */
-    will-change: transform; /* Hardware-Zuweisung vorab erzwingen */
-    transition: transform 0.65s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s;
+    height: 100%; width: 0%; /* Startet stabil bei 0% */
+    transition: width 0.75s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s;
 }
 
 .action-group { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
@@ -199,6 +204,9 @@ body, html {
     .action-group .delete-btn { flex-shrink: 0; }
 }
 
+/* ==================================================== */
+/* 6. ACCORDION DETAILS & FOLDER PREVIEWS               */
+/* ==================================================== */
 .ssd-details { margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(0, 102, 58, 0.2); }
 .ssd-details summary { color: #a0aec0; font-size: 0.85rem; cursor: pointer; outline: none; user-select: none; list-style: none; display: flex; align-items: center; gap: 6px; transition: color 0.2s; }
 .ssd-details summary:hover { color: white; }
@@ -216,6 +224,9 @@ body, html {
 .sort-select { display: none !important; }
 .alloc-unit { display: block !important; }
 
+/* ==================================================== */
+/* 7. HARDWARE CAMERA STREAMS & SCANNING HUD            */
+/* ==================================================== */
 .fab-camera-trigger { position: absolute; bottom: 30px; right: 30px; z-index: 5; width: 60px; height: 60px; background: #00663a; border: 2px solid #ffffff; border-radius: 50%; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; cursor: pointer; pointer-events: auto; transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s; }
 .fab-camera-trigger:hover { transform: scale(1.08); box-shadow: 0 0 25px rgba(0, 102, 58, 0.6); }
 .fab-camera-trigger:active { transform: scale(0.9); }
@@ -229,13 +240,11 @@ body, html {
 .scan-region::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 3px; background: #00663a; box-shadow: 0 0 12px #00663a; animation: scan 2s linear infinite; will-change: transform; }
 @keyframes scan { 0% { transform: translateY(0); } 50% { transform: translateY(237px); } 100% { transform: translateY(0); } }
 
-/* TUNING: Die AR-Karte wird vorab auf ein eigenes Hardware-Layer gehoben */
 .ar-card {
     position: absolute; bottom: 30px; left: 50%; transform: translate(-50%, 120%);
     width: 92%; max-width: 420px; background: #1a1a1a !important; border: 2px solid #00663a;
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.8); border-radius: 16px; padding: 20px; color: white;
     box-sizing: border-box; pointer-events: auto; z-index: 13; opacity: 0;
-    will-change: transform, opacity;
     transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
 }
 .ar-card.active { transform: translate(-50%, 0); opacity: 1; }
@@ -274,7 +283,7 @@ body, html {
 .ssd-row.gecko-brand.recommended-alloc-row { background: rgba(41, 171, 226, 0.04); box-shadow: 0 0 15px rgba(41, 171, 226, 0.15) !important; }
 .gecko-brand .alloc-row-badge { background: #29ABE2; color: #121212; }
 
-/* FIX: @title zu @keyframes korrigiert */
+/* REPARIERT: Syntax-Fehler von @title auf @keyframes korrigiert! */
 @keyframes neonPulse {
     0% { box-shadow: 0 0 4px rgba(255,255,255,0.1); }
     50% { box-shadow: 0 0 16px var(--glow-color); }
